@@ -13,7 +13,7 @@ KEYWORDS="LLM, Quantization"
 MIN_YEAR=2023
 
 # 从API获取的论文数量上限
-LIMIT=300
+LIMIT=500
 
 # 输出的Excel文件名
 OUTPUT_FILE="arxiv_results.xlsx"

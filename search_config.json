@@ -1,0 +1,41 @@
+{
+  "search_topics": [
+    {
+      "direction": "LLM Quantization",
+      "query_keywords": ["LLM", "Quantization"],
+      "operator": "AND",
+      "abstract_keywords": ["quantization", "LLM"],
+      "abstract_operator": "AND",
+      "subjects": ["cs.CL", "cs.LG"]
+    },
+    {
+      "direction": "LLM Pruning",
+      "query_keywords": ["LLM", "Pruning"],
+      "operator": "AND",
+      "abstract_keywords": ["pruning", "prune"],
+      "abstract_operator": "OR",
+      "subjects": ["cs.CL", "cs.LG"]
+    },
+    {
+      "direction": "Architecture",
+      "query_keywords": ["Hardware Architecture", "Hardware Accelerator", "Hardware Acceleration"],
+      "operator": "OR",
+      "abstract_keywords": ["Architecture", "Hardware Architecture", "Hardware", "Accelerate", "Accelerator", "Acceleration"],
+      "abstract_operator": "OR",
+      "subjects": ["cs.AR","cs.CL", "cs.LG", "cs.RO", "cs.CV"]
+    },
+    {
+      "direction": "Embodied AI",
+      "query_keywords": ["Vision-Language-Action", "VLA", "Embodied AI", "Embodied Artificial Intelligence", "Embodied Robot", "SLAM"],
+      "operator": "OR",
+      "abstract_keywords": ["Vision-Language-Action", "VLA", "Embodied AI", "Embodied Artificial Intelligence", "Embodied Robot"],
+      "abstract_operator": "OR",
+      "subjects": ["cs.AI", "cs.RO", "cs.CV", "cs.LG"]
+    }
+  ],
+  "search_settings": {
+    "search_window_days": 7,
+    "limit_per_topic": 50,
+    "min_authors": 2
+  }
+} 
