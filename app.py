@@ -7,6 +7,7 @@ from datetime import datetime
 
 # 导入现有的搜索脚本逻辑
 from semantic_scholar_search import run_search as semantic_scholar_run_search
+from arxiv_multi_search import run_search as arxiv_run_search
 
 app = Flask(__name__)
 
@@ -150,6 +151,45 @@ def handle_search():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/arxiv_search', methods=['POST'])
+def handle_arxiv_search():
+    """处理前端发来的包含多个搜索方向的 arXiv 时间窗口搜索请求"""
+    try:
+        data = request.json
+        print(f"DEBUG: 从前端接收到的 arXiv 搜索数据: {data}")
+        
+        directions = data.get('directions', [])
+        
+        settings = {
+            "search_window_days": int(data.get('days', 7)),
+            "limit_per_topic": int(data.get('limit', 100)),
+            "min_authors": int(data.get('min_authors', 1))
+        }
+
+        grouped_results = {}
+        for i, direction in enumerate(directions):
+            direction_name = f"方向 {i+1}"
+            
+            # 将前端数据转换为 arxiv_multi_search 脚本期望的格式
+            topic = {
+                "direction": direction_name,
+                "query_keywords": [[kw.strip() for kw in line.split(',')] for line in direction.get('query_keywords', '').strip().split('\n') if line.strip()],
+                "abstract_keywords": [[kw.strip() for kw in line.split(',')] for line in direction.get('abstract_keywords', '').strip().split('\n') if line.strip()],
+                "subjects": [s.strip() for s in direction.get('subjects', '').split(',') if s.strip()]
+            }
+
+            # 调用导入的搜索函数
+            papers = arxiv_run_search(topic, settings)
+            grouped_results[direction_name] = papers
+        
+        return jsonify(grouped_results)
+
+    except Exception as e:
+        print("arXiv 搜索时发生错误:")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/export', methods=['POST'])
 def export_to_excel():
     """将分组的搜索结果导出为 Excel 文件"""
@@ -194,6 +234,53 @@ def export_to_excel():
 
     except Exception as e:
         print("导出 Excel 时发生错误:")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/arxiv_export', methods=['POST'])
+def export_arxiv_to_excel():
+    """将分组的 arXiv 搜索结果导出为 Excel 文件"""
+    try:
+        grouped_data = request.json
+        
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            for direction_name, papers in grouped_data.items():
+                if not papers:
+                    continue
+                
+                # 准备用于输出的DataFrame
+                df = pd.DataFrame(papers)
+                df_for_excel = pd.DataFrame({
+                    '更新日期': df['updated'],
+                    '发表日期': df['published'],
+                    '文章标题': df['title'],
+                    '匹配的关键词': df['matched_keywords'],
+                    '作者': df['author'],
+                    'URL': df['url']
+                })
+
+                # 创建安全的工作表名称
+                safe_name = "".join(c for c in direction_name if c.isalnum() or c in (' ', '_')).rstrip()
+                sheet_name = safe_name[:31] # Excel工作表名长度限制为31个字符
+
+                df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False)
+        
+        output.seek(0)
+        
+        date_str = datetime.now().strftime('%Y%m%d')
+        filename = f"arxiv_report_{date_str}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+
+    except Exception as e:
+        print("导出 arXiv Excel 时发生错误:")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 

@@ -136,6 +136,38 @@ def search_arxiv(query, direction_name, start_date, abstract_keyword_groups=None
 
     return papers
 
+def run_search(topic, settings):
+    """
+    可从外部调用的搜索函数 (例如从 app.py)。
+    它接收一个主题和设置，返回论文列表。
+    """
+    direction = topic.get('direction', '未命名方向')
+    query_keyword_groups = topic.get('query_keywords', [])
+    abstract_keyword_groups = topic.get('abstract_keywords', [])
+    subjects = topic.get('subjects', [])
+
+    search_window_days = settings.get('search_window_days', 7)
+    limit_per_topic = settings.get('limit_per_topic', 100)
+    min_authors = settings.get('min_authors', 1)
+    
+    start_date = datetime.now(timezone.utc) - timedelta(days=search_window_days)
+
+    if not query_keyword_groups:
+        print(f"跳过 '{direction}'，因为它没有定义 'query_keywords'。")
+        return []
+
+    query = build_query(query_keyword_groups)
+    
+    return search_arxiv(
+        query,
+        direction_name=direction,
+        start_date=start_date,
+        abstract_keyword_groups=abstract_keyword_groups,
+        subjects=subjects,
+        min_authors=min_authors,
+        limit=limit_per_topic,
+    )
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="从 arXiv 批量搜索指定时间窗口内的新论文并导出到 Excel。")
@@ -181,27 +213,11 @@ if __name__ == "__main__":
     total_papers_found = 0
     
     for topic in config.get('search_topics', []):
-        direction = topic.get('direction', '未命名方向')
-        query_keyword_groups = topic.get('query_keywords', [])
-        abstract_keyword_groups = topic.get('abstract_keywords', [])
-        subjects = topic.get('subjects', [])
-
-        if not query_keyword_groups:
-            print(f"跳过 '{direction}'，因为它没有定义 'query_keywords'。")
-            continue
-        
-        query = build_query(query_keyword_groups)
-        papers = search_arxiv(
-            query,
-            direction_name=direction,
-            start_date=start_date,
-            abstract_keyword_groups=abstract_keyword_groups,
-            subjects=subjects,
-            min_authors=min_authors,
-            limit=limit_per_topic,
-        )
+        # 直接调用重构后的 run_search 函数
+        papers = run_search(topic, settings)
         
         if papers:
+            direction = topic.get('direction', '未命名方向')
             papers_by_direction[direction] = papers
             total_papers_found += len(papers)
         
