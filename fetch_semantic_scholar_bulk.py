@@ -1,15 +1,13 @@
 import time
 import argparse
-import pandas as pd
 import json
-from datetime import datetime
 from semanticscholar.SemanticScholar import SemanticScholar
 
-def fetch_data_from_venues(config_path, output_path):
+def fetch_data_from_venues(config_path, venues_config_path, output_path):
     """
     从指定的配置文件中读取venues，并从Semantic Scholar抓取数据，保存到本地。
     """
-    # 读取配置文件
+    # 读取主配置文件
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             config = json.load(f)
@@ -20,15 +18,27 @@ def fetch_data_from_venues(config_path, output_path):
         print(f"错误：配置文件 '{config_path}' 格式不正确。")
         return
 
+    # 读取会议定义文件
+    try:
+        with open(venues_config_path, 'r', encoding='utf-8') as f:
+            venue_definitions = json.load(f)
+    except FileNotFoundError:
+        print(f"错误：会议定义文件 '{venues_config_path}' 未找到。")
+        return
+    except json.JSONDecodeError:
+        print(f"错误：会议定义文件 '{venues_config_path}' 格式不正确。")
+        return
+
     settings = config.get('search_settings', {})
-    venues_to_search = config.get('venues', [])
+    # 从主配置中获取要搜索的 venue 键列表
+    venues_to_search_keys = config.get('venues_to_search', [])
+    if not venues_to_search_keys:
+        print("错误：主配置文件中必须指定 'venues_to_search' 列表。")
+        return
+        
     year = settings.get('year')
     fields_of_study = settings.get('fields_of_study', ["Computer Science"])
 
-    if not venues_to_search:
-        print("错误：配置文件中没有找到 'venues' 列表。")
-        return
-    
     if not year:
         print("错误：配置文件中必须指定 'year'。")
         return
@@ -38,27 +48,39 @@ def fetch_data_from_venues(config_path, output_path):
     total_start_time = time.time()
 
     print(f"开始从 Semantic Scholar 抓取数据，年份: {year}...")
-    print(f"将要搜索的会议/期刊数量: {len(venues_to_search)}")
+    print(f"将要搜索的会议/期刊数量: {len(venues_to_search_keys)}")
     print("-" * 30)
 
-    for venue in venues_to_search:
-        print(f"正在处理: '{venue}'")
+    for key in venues_to_search_keys:
+        if key not in venue_definitions:
+            print(f"警告：在会议定义文件中找不到键 '{key}'，跳过。")
+            continue
+            
+        venue_details = venue_definitions[key]
+        venue_search_terms = venue_details.get("venue")
+        if not venue_search_terms:
+            continue
+            
+        # 为了日志清晰，只显示第一个词条
+        display_name = venue_search_terms[0]
+        print(f"正在处理: '{display_name}'")
         venue_start_time = time.time()
         try:
             # 使用 venue 和 year 参数进行精确搜索
-            # fields 参数指定了我们想要获取的所有论文属性
             results = s2.search_paper(
-                query='hardware', # 将venue同时用作query
-                venue=[venue],
+                query='hardware',
+                venue=venue_search_terms, # 将整个列表传给API
                 year=year,
                 fields_of_study=fields_of_study,
                 # bulk=True,
+                limit=2,
                 fields=[
                     'paperId', 'url', 'title', 'abstract', 'venue', 'year',
                     'citationCount', 
                     'fieldsOfStudy', 'authors'
                 ]
             )
+            print('get')
             
             # 迭代获取所有结果
             count = 0
@@ -73,8 +95,11 @@ def fetch_data_from_venues(config_path, output_path):
             print(f"  > 完成。找到 {count} 篇新论文。耗时: {venue_end_time - venue_start_time:.2f} 秒")
 
         except Exception as e:
-            print(f"  ! 处理 '{venue}' 时出错: {e}")
+            print(f"  ! 处理 '{display_name}' 时出错: {e}")
             continue
+        
+        # 遵循API的速率限制，每次请求后暂停1秒
+        time.sleep(1)
 
     print("-" * 30)
     print(f"所有API请求已完成。总计独立论文数: {len(all_papers_data)}")
@@ -96,8 +121,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--config",
         type=str,
-        default="configs/semantic_scholar_hardware_all.json",
+        default="configs/semantic_scholar_hardware.json",
         help="包含搜索设置和venues列表的JSON配置文件路径。"
+    )
+    parser.add_argument(
+        "--venues",
+        type=str,
+        default="configs/semantic_scholar_venues.json",
+        help="包含会议/期刊定义的JSON文件路径。"
     )
     parser.add_argument(
         "--output",
@@ -107,4 +138,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    fetch_data_from_venues(config_path=args.config, output_path=args.output) 
+    fetch_data_from_venues(
+        config_path=args.config, 
+        venues_config_path=args.venues, 
+        output_path=args.output
+    ) 

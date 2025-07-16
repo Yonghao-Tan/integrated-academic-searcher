@@ -31,7 +31,12 @@
         ["Acceleration", "Efficiency"],
         ["Acceleration", "Throughput"]
       ],
-      "venue_category": "Hardware",
+      "venues_to_search": [
+        "ISSCC", "VLSI", "CICC", "ESSERC", 
+        "JSSC", "TCAS-I", 
+        "ISCA", "MICRO", "ASPLOS", "HPCA", 
+        "TCAD", "DAC", "ICCAD"
+      ],
       "skip_abstract_filter_for_venues": ["ISSCC", "VLSI", "CICC", "ESSERC"]
     }
   ],
@@ -42,69 +47,6 @@
     "limit_per_topic": 100,
     "title_exclude_keywords": ["review", "survey", "perspective", "retrospective", "tutorial", "forum", "workshop", "overview", "course", "invite", "usa", "analog", "transmitter", "modulator", "inverter", "convertor", "PLL"],
     "fields_of_study": ["Computer Science", "Engineering"]
-  },
-  "venue_definitions": {
-    "_comment_venues": "在这里定义不同类别的顶级会议和期刊。键名(如'Hardware')应与search_topics中的'venue_category'对应。",
-    "Hardware": {
-        "ISSCC": {
-            "keywords": ["International Solid-State Circuits Conference"],
-            "category": "Circuit",
-            "skip_abstract_filter": true
-        },
-        "VLSI": {
-            "keywords": ["VLSI Technology and Circuits", "Symposium on VLSI Technology", "wrong"],
-            "category": "Circuit",
-            "skip_abstract_filter": true
-        },
-        "CICC": {
-            "keywords": ["Custom Integrated Circuits Conference"],
-            "category": "Circuit",
-            "skip_abstract_filter": true
-        },
-        "ESSERC": {
-            "keywords": ["European Solid-State Circuits Conference"],
-            "category": "Circuit",
-            "skip_abstract_filter": true
-        },
-        "DAC": {
-            "keywords": ["Design Automation Conference"],
-            "category": "Others"
-        },
-        "ICCAD": {
-            "keywords": ["International Conference on Computer Aided Design"],
-            "category": "Others"
-        },
-        "JSSC": {
-            "keywords": ["IEEE J. Solid State Circuits"],
-            "category": "Circuit",
-            "skip_abstract_filter": true
-        },
-        "TCAS-I": {
-            "keywords": ["IEEE Trans. Circuits Syst. I Regul. Pap."],
-            "category": "Circuit",
-            "skip_abstract_filter": true
-        },
-        "TCAD": {
-            "keywords": ["IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems"],
-            "category": "Others"
-        },
-        "ISCA": {
-            "keywords": ["International Symposium on Computer Architecture"],
-            "category": "Top Architecture"
-        },
-        "MICRO": {
-            "keywords": ["MICRO"],
-            "category": "Top Architecture"
-        },
-        "ASPLOS": {
-            "keywords": ["International Conference on Architectural Support for Programming Languages and Operating Systems"],
-            "category": "Top Architecture"
-        },
-        "HPCA": {
-            "keywords": ["International Symposium on High-Performance Computer Architecture"],
-            "category": "Top Architecture"
-        }
-    }
   },
   "output_file_prefix": "./outputs/semantic_scholar_hardware_report"
 } 

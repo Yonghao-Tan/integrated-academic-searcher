@@ -1,0 +1,43 @@
+{
+  "_comment_main": "这是硬件领域的 Semantic Scholar 搜索配置",
+  "search_topics": [
+    {
+      "direction": "Hardware for AI",
+      "query_keywords": [
+          ["NeRF"],
+          ["3DGS"],
+          ["Neural Rendering"]
+      ],
+      "abstract_keywords": [
+        ["NeRF"],
+        ["Neural Radiance Field"],
+        ["3DGS"],
+        ["3D Gaussian Splatting"],
+        ["Neural Rendering"],
+        ["Volume Rendering"]
+      ],
+      "_all_venues_to_search_comment": [
+        "ISSCC", "VLSI", "CICC", "ESSERC", 
+        "JSSC", "TCAS-I", 
+        "ISCA", "MICRO", "ASPLOS", "HPCA", 
+        "TCAD", "DAC", "ICCAD"
+      ],
+      "venues_to_search": [
+        "ISSCC", "VLSI", "CICC", "ESSERC", 
+        "JSSC", "TCAS-I", 
+        "ISCA", "MICRO", "ASPLOS", "HPCA", 
+        "TCAD", "DAC", "ICCAD"
+      ],
+      "skip_abstract_filter_for_venues": ["ISSCC", "VLSI", "CICC", "ESSERC"]
+    }
+  ],
+  "search_settings": {
+    "_comment_sort_by": "排序方式。可用选项: 'relevance' (相关度), 'citationCount' (引用数), 'influence' (影响力), 'publicationDate' (发表日期)",
+    "sort_by": "relevance",
+    "min_year": 2022,
+    "limit_per_topic": 100,
+    "title_exclude_keywords": ["review", "survey", "perspective", "retrospective", "tutorial", "forum", "workshop", "overview", "course", "invite", "usa", "analog", "transmitter", "modulator", "inverter", "convertor", "PLL", "Oscillator", "ADC", "DAC", "Transceiver", "Synthesis"],
+    "fields_of_study": ["Computer Science", "Engineering"]
+  },
+  "output_file_prefix": "./outputs/semantic_scholar_3d_report"
+} 

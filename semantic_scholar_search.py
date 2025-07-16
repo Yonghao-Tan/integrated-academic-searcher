@@ -5,19 +5,19 @@ import json
 from datetime import datetime
 from semanticscholar.SemanticScholar import SemanticScholar
 
-def find_top_venue(venue_str, venue_definitions, category_key):
+def find_top_venue(venue_str, venue_definitions):
     """
     根据venue字符串和指定的类别，判断论文是否属于顶级出版物。
     返回一个元组 (标准化的会议/期刊名称, 类别)，否则返回 (None, None)。
     """
-    if not venue_str or not venue_definitions or not category_key:
+    if not venue_str or not venue_definitions:
         return None, None
 
-    venue_list = venue_definitions.get(category_key, {})
     venue_lower = venue_str.lower()
 
-    for conf_name, conf_details in venue_list.items():
-        for pattern in conf_details.get('keywords', []):
+    # 在所有定义的会议中查找匹配项
+    for conf_name, conf_details in venue_definitions.items():
+        for pattern in conf_details.get('venue', []):
             if pattern.lower() in venue_lower or pattern.lower() in venue_str.lower():
                 return conf_name, conf_details.get('category', 'Others')
     return None, None
@@ -28,7 +28,8 @@ def search_semantic_scholar(topic, settings, venue_definitions):
     direction = topic.get('direction', '未命名方向')
     query_keyword_groups = topic.get('query_keywords', [])
     abstract_keyword_groups = topic.get('abstract_keywords', [])
-    venue_category = topic.get('venue_category')
+    # 从 topic 中获取要搜索的 venue key 列表
+    venues_to_search_keys = topic.get('venues_to_search', [])
     skip_abstract_venues = topic.get('skip_abstract_filter_for_venues', [])
     
     min_year = settings.get('min_year')
@@ -37,11 +38,14 @@ def search_semantic_scholar(topic, settings, venue_definitions):
     title_exclude_keywords = settings.get('title_exclude_keywords', [])
     fields_of_study = settings.get('fields_of_study', None)
     
-    # 根据 venue_category 获取要使用的会议/期刊列表和keys
-    venue_list = venue_definitions.get(venue_category, {})
-    venue_keys = list(venue_list.keys()) # 用于API层面的高效预筛选
-    if not venue_list:
-        print(f"警告：在 '{direction}' 方向中找不到名为 '{venue_category}' 的场馆定义，将不会按场馆筛选。")
+    # 根据 venues_to_search_keys 从 venue_definitions 构建API请求列表
+    api_venue_list = []
+    for key in venues_to_search_keys:
+        if key in venue_definitions and 'venue' in venue_definitions[key]:
+            api_venue_list.extend(venue_definitions[key]['venue'])
+    
+    if not api_venue_list:
+        print(f"警告：在 '{direction}' 方向中，指定的 'venues_to_search' 列表为空或无效，将不会按场馆筛选。")
 
     s2 = SemanticScholar()
     print(f"[{direction}] 开始搜索...")
@@ -57,7 +61,7 @@ def search_semantic_scholar(topic, settings, venue_definitions):
             search_params = {
                 'query': query,
                 # 'sort': sort_by, # will not be used
-                'venue': venue_keys,
+                'venue': api_venue_list,
                 'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId']
             }
             if fields_of_study:
@@ -83,13 +87,13 @@ def search_semantic_scholar(topic, settings, venue_definitions):
         title_lower = paper.title.lower()
         if title_exclude_keywords and any(kw.lower() in title_lower for kw in title_exclude_keywords):
             continue
-
+        # print(paper.title, paper.venue)
         # 年份筛选
         if min_year and (not paper.year or paper.year < min_year):
             continue
 
         # 会议/期刊筛选 (现在同时返回分类)
-        found_venue, venue_category_name = find_top_venue(paper.venue, venue_definitions, venue_category)
+        found_venue, venue_category_name = find_top_venue(paper.venue, venue_definitions)
         if not found_venue:
             continue
 
@@ -127,11 +131,12 @@ def search_semantic_scholar(topic, settings, venue_definitions):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="从 Semantic Scholar 批量搜索论文并导出到 Excel。")
     parser.add_argument("config", type=str, help="要使用的JSON配置文件路径 (例如 'config_algorithm.json')。")
+    parser.add_argument("--venues", type=str, default="configs/semantic_scholar_venues.json", help="包含会议/期刊定义的JSON文件路径。")
     args = parser.parse_args()
 
     total_start_time = time.time()
 
-    # 读取配置文件
+    # 读取主配置文件
     try:
         with open(args.config, 'r', encoding='utf-8') as f:
             config = json.load(f)
@@ -142,8 +147,18 @@ if __name__ == "__main__":
         print(f"错误：配置文件 '{args.config}' 格式不正确。")
         exit(1)
         
+    # 读取会议定义文件
+    try:
+        with open(args.venues, 'r', encoding='utf-8') as f:
+            venue_definitions = json.load(f)
+    except FileNotFoundError:
+        print(f"错误：会议定义文件 '{args.venues}' 未找到。")
+        exit(1)
+    except json.JSONDecodeError:
+        print(f"错误：会议定义文件 '{args.venues}' 格式不正确。")
+        exit(1)
+
     settings = config.get('search_settings', {})
-    venue_definitions = config.get('venue_definitions', {})
     output_prefix = config.get('output_file_prefix', 'semantic_scholar_report')
 
     papers_by_direction = {}

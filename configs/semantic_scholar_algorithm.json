@@ -10,7 +10,10 @@
       "abstract_keywords": [
         ["quantization", "LLM"]
       ],
-      "venue_category": "Algorithm"
+      "venues_to_search": [
+        "CVPR", "ICCV", "ECCV", "NeurIPS", "ICML", 
+        "ICLR", "ACL", "EMNLP", "AAAI", "JMLR", "TPAMI"
+      ]
     }
   ],
   "search_settings": {
@@ -20,22 +23,6 @@
     "limit_per_topic": 50,
     "title_exclude_keywords": ["review", "survey", "perspective", "retrospective"],
     "fields_of_study": ["Computer Science"]
-  },
-  "venue_definitions": {
-    "_comment_venues": "在这里定义不同类别的顶级会议和期刊。键名(如'Algorithm')应与search_topics中的'venue_category'对应。",
-    "Algorithm": {
-      "CVPR": ["Computer Vision and Pattern Recognition"],
-      "ICCV": ["international conference on computer vision", "wrong"],
-      "ECCV": ["European Conference on Computer Vision"],
-      "NeurIPS": ["Neural Information Processing Systems"],
-      "ICML": ["International Conference on Machine Learning"],
-      "ICLR": ["International Conference on Learning Representations"],
-      "ACL": ["Annual Meeting of the Association for Computational Linguistics"],
-      "EMNLP": ["Conference on Empirical Methods in Natural Language Processing"],
-      "AAAI": ["AAAI Conference on Artificial Intelligence"],
-      "JMLR": ["journal of machine learning research", "wrong"],
-      "TPAMI": ["IEEE Transactions on Pattern Analysis and Machine Intelligence"]
-    }
   },
   "output_file_prefix": "./outputs/semantic_scholar_algorithm_report"
 } 

@@ -57,6 +57,26 @@
       "subjects": ["cs.CL", "cs.LG"]
     },
     {
+      "direction": "3D",
+      "query_keywords": [
+        ["NeRF"],
+        ["Neural Radiance Field"],
+        ["3DGS"],
+        ["3D Gaussian Splatting"],
+        ["Neural Rendering"],
+        ["Volume Rendering"]
+      ],
+      "abstract_keywords": [
+        ["NeRF"],
+        ["Neural Radiance Field"],
+        ["3DGS"],
+        ["3D Gaussian Splatting"],
+        ["Neural Rendering"],
+        ["Volume Rendering"]
+      ],
+      "subjects": ["cs.CL", "cs.LG", "cs.CV"]
+    },
+    {
       "direction": "Architecture",
       "query_keywords": [
         ["LLM", "Hardware Architecture"], 
