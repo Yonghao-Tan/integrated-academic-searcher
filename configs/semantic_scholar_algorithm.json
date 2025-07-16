@@ -24,18 +24,18 @@
   "venue_definitions": {
     "_comment_venues": "在这里定义不同类别的顶级会议和期刊。键名(如'Algorithm')应与search_topics中的'venue_category'对应。",
     "Algorithm": {
-      "CVPR": ["computer vision and pattern recognition"],
-      "ICCV": ["international conference on computer vision"],
-      "ECCV": ["european conference on computer vision"],
-      "NeurIPS": ["neural information processing systems"],
-      "ICML": ["international conference on machine learning"],
-      "ICLR": ["international conference on learning representations"],
-      "ACL": ["association for computational linguistics"],
-      "EMNLP": ["empirical methods in natural language processing"],
-      "AAAI": ["aaai conference on artificial intelligence"],
-      "JMLR": ["journal of machine learning research"],
-      "TPAMI": ["pattern analysis and machine intelligence", "pami"]
+      "CVPR": ["Computer Vision and Pattern Recognition"],
+      "ICCV": ["international conference on computer vision", "wrong"],
+      "ECCV": ["European Conference on Computer Vision"],
+      "NeurIPS": ["Neural Information Processing Systems"],
+      "ICML": ["International Conference on Machine Learning"],
+      "ICLR": ["International Conference on Learning Representations"],
+      "ACL": ["Annual Meeting of the Association for Computational Linguistics"],
+      "EMNLP": ["Conference on Empirical Methods in Natural Language Processing"],
+      "AAAI": ["AAAI Conference on Artificial Intelligence"],
+      "JMLR": ["journal of machine learning research", "wrong"],
+      "TPAMI": ["IEEE Transactions on Pattern Analysis and Machine Intelligence"]
     }
   },
-  "output_file_prefix": "algorithm_report"
+  "output_file_prefix": "./outputs/semantic_scholar_algorithm_report"
 } 

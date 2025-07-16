@@ -1,0 +1,9 @@
+{
+    "search_settings": {
+        "year": 2020,
+        "fields_of_study": ["Computer Science", "Engineering"]
+    },
+    "venues": [
+        "VLSI Technology and Circuits"
+    ]
+} 

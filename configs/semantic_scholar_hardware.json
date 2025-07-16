@@ -47,72 +47,64 @@
     "_comment_venues": "在这里定义不同类别的顶级会议和期刊。键名(如'Hardware')应与search_topics中的'venue_category'对应。",
     "Hardware": {
         "ISSCC": {
-            "keywords": ["international solid-state circuits conference"],
+            "keywords": ["International Solid-State Circuits Conference"],
             "category": "Circuit",
             "skip_abstract_filter": true
         },
         "VLSI": {
-            "keywords": ["Symposium on VLSI Technology"],
+            "keywords": ["VLSI Technology and Circuits", "Symposium on VLSI Technology", "wrong"],
             "category": "Circuit",
             "skip_abstract_filter": true
         },
         "CICC": {
-            "keywords": ["custom integrated circuits conference"],
+            "keywords": ["Custom Integrated Circuits Conference"],
             "category": "Circuit",
             "skip_abstract_filter": true
         },
         "ESSERC": {
-            "keywords": ["European Solid-State Electronics Research Conference", "ESSERC", "European Conference on Solid-State Circuits", "ESSCIRC"],
+            "keywords": ["European Solid-State Circuits Conference"],
             "category": "Circuit",
             "skip_abstract_filter": true
         },
         "DAC": {
-            "keywords": ["design automation conference"],
+            "keywords": ["Design Automation Conference"],
             "category": "Others"
         },
         "ICCAD": {
-            "keywords": ["International Conference on Computer Aided Design","international conference on computer-aided design", "int. conf. comput.-aided design"],
+            "keywords": ["International Conference on Computer Aided Design"],
             "category": "Others"
         },
         "JSSC": {
-            "keywords": ["journal of solid-state circuits"],
+            "keywords": ["IEEE J. Solid State Circuits"],
             "category": "Circuit",
             "skip_abstract_filter": true
         },
         "TCAS-I": {
-            "keywords": [
-                "transactions on circuits and systems i",
-                "transactions on circuits and systems part 1",
-                "trans. circuits syst. i"
-            ],
+            "keywords": ["IEEE Trans. Circuits Syst. I Regul. Pap."],
             "category": "Circuit",
             "skip_abstract_filter": true
         },
         "TCAD": {
-            "keywords": [
-                "transactions on computer-aided design",
-                "transactions on computer-aided design of integrated circuits and systems",
-                "trans. comput.-aided design"
-            ],
+            "keywords": ["IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems"],
             "category": "Others"
         },
         "ISCA": {
-            "keywords": ["international symposium on computer architecture", "ISCA"],
+            "keywords": ["International Symposium on Computer Architecture"],
             "category": "Top Architecture"
         },
         "MICRO": {
-            "keywords": ["international symposium on microarchitecture", "MICRO"],
+            "keywords": ["MICRO"],
             "category": "Top Architecture"
         },
         "ASPLOS": {
-            "keywords": ["architectural support for programming languages and operating systems", "ASPLOS"],
+            "keywords": ["International Conference on Architectural Support for Programming Languages and Operating Systems"],
             "category": "Top Architecture"
         },
         "HPCA": {
-            "keywords": ["international symposium on high-performance computer architecture", "HPCA"],
+            "keywords": ["International Symposium on High-Performance Computer Architecture"],
             "category": "Top Architecture"
         }
     }
   },
-  "output_file_prefix": "hardware_report"
+  "output_file_prefix": "./outputs/semantic_scholar_hardware_report"
 } 

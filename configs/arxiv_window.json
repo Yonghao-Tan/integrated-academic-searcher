@@ -35,7 +35,7 @@
       "subjects": ["cs.CL", "cs.LG"]
     },
     {
-      "direction": "LLM Other Compression",
+      "direction": "LLM Compression Others",
       "query_keywords": [
         ["LLM", "Speculative Decoding"],
         ["Large Language Model", "Speculative Decoding"],
@@ -116,7 +116,7 @@
   ],
   "search_settings": {
     "search_window_days": 7,
-    "limit_per_topic": 200,
+    "limit_per_topic": 100,
     "min_authors": 2
   }
 } 

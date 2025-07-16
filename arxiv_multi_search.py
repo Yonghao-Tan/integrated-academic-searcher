@@ -139,7 +139,7 @@ def search_arxiv(query, direction_name, start_date, abstract_keyword_groups=None
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="从 arXiv 批量搜索指定时间窗口内的新论文并导出到 Excel。")
-    parser.add_argument("--config", type=str, default="search_config.json", help="包含搜索主题和设置的JSON配置文件路径。")
+    parser.add_argument("--config", type=str, default="configs/arxiv_window.json", help="包含搜索主题和设置的JSON配置文件路径。")
     parser.add_argument("--days", type=int, help="覆盖配置文件中的搜索时间窗口（天数）。")
     parser.add_argument("--limit", type=int, help="覆盖配置文件中每个主题的论文数量上限。")
     parser.add_argument("--min-authors", type=int, help="覆盖配置文件中的最少作者数量。")
@@ -171,7 +171,7 @@ if __name__ == "__main__":
     end_date_str = end_date.strftime('%m%d')
     
     # 动态生成文件名
-    output_file = f"arxiv_report_{start_date_str}_{end_date_str}.xlsx"
+    output_file = f"./outputs/arxiv_report_{start_date_str}_{end_date_str}.xlsx"
 
     print(f"将搜索在 {start_date.strftime('%Y-%m-%d')} 之后更新的论文...")
     print(f"结果将保存到文件: {output_file}")
