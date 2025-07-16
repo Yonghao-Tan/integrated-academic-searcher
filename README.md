@@ -1,4 +1,4 @@
-# 学术论文搜索器
+# Academic Paper Search Tool: Semantic Scholar & arXiv, Advanced Filters, Excel Export
 
 这是一个功能强大的双模式学术论文搜索工具，集成了对 **Semantic Scholar** 和 **arXiv** 的搜索，并提供了高级筛选、多工作表结果分组和一键Excel导出功能。
 
