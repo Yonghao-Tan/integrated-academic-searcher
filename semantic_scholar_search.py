@@ -57,15 +57,18 @@ def search_semantic_scholar(topic, settings, venue_definitions):
         query = " ".join(group)
         print(f"  > 正在搜索: '{query}'")
         try:
-            # 构建参数字典，以便动态添加 fields_of_study
+            # 构建参数字典，以便动态添加 fields_of_study 和 sort
             search_params = {
                 'query': query,
-                # 'sort': sort_by, # will not be used
                 'venue': api_venue_list,
                 'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId']
             }
             if fields_of_study:
                 search_params['fields_of_study'] = fields_of_study
+            
+            # 仅当 sort_by 是 API 支持的选项时才传递
+            if sort_by in ['relevance', 'citationCount']:
+                 search_params['sort'] = sort_by
 
             lazy_results = s2.search_paper(**search_params)
             
@@ -123,10 +126,22 @@ def search_semantic_scholar(topic, settings, venue_definitions):
             'paperId': paper.paperId
         })
             
-    # 按会议名、年份、引用数排序
-    top_papers.sort(key=lambda p: (p['venue_name'], -p.get('year', 0), -p.get('citations', 0)))
+    # --- 本地排序 ---
+    # 如果 sort_by 是 'year'，则在本地进行排序
+    if sort_by == 'year':
+        top_papers.sort(key=lambda p: (-p.get('year', 0), -p.get('citations', 0)))
+    else:
+        # 否则使用默认排序（会议、年份、引用数）
+        top_papers.sort(key=lambda p: (p['venue_name'], -p.get('year', 0), -p.get('citations', 0)))
             
     return top_papers
+
+def run_search(topic, settings, venue_definitions):
+    """
+    可从外部调用的搜索函数。
+    它接收一个搜索主题和设置，返回论文列表。
+    """
+    return search_semantic_scholar(topic, settings, venue_definitions)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="从 Semantic Scholar 批量搜索论文并导出到 Excel。")

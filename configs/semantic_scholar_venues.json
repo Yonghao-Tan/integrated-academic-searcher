@@ -20,6 +20,7 @@
     "ESSERC": { "venue": ["European Solid-State Circuits Conference"], "category": "Circuit" },
     "JSSC": { "venue": ["IEEE Journal of Solid-State Circuits", "IEEE J. Solid State Circuits"], "category": "Circuit" },
     "TCAS-I": { "venue": ["IEEE Transactions on Circuits and Systems Part 1: Regular Papers", "IEEE Trans. Circuits Syst. I Regul. Pap."], "category": "Circuit" },
+    "TVLSI": { "venue": ["IEEE Transactions on Very Large Scale Integration (VLSI) Systems"], "category": "Circuit" },
     "ISCA": { "venue": ["International Symposium on Computer Architecture"], "category": "Architecture" },
     "MICRO": { "venue": ["Micro"], "category": "Architecture" },
     "ASPLOS": { "venue": ["International Conference on Architectural Support for Programming Languages and Operating Systems"], "category": "Architecture" },
