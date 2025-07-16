@@ -5,13 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>学术论文搜索器</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1200px; margin: 20px auto; padding: 0 20px; background-color: #f8f9fa; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #333; max-width: 1600px; margin: 20px auto; padding: 0 20px; background-color: #f8f9fa; }
         h1, h2 { color: #0056b3; }
         .container { display: flex; gap: 30px; }
-        .form-section { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 40%; }
+        .form-section { background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 24%; flex-shrink: 0; }
         /* 新增样式，用于在禁用时让表单变灰且不可点击 */
         fieldset:disabled { opacity: 0.5; pointer-events: none; }
-        .results-section { width: 60%; }
+        .results-section { width: 76%; }
         form { display: flex; flex-direction: column; gap: 15px; }
         label { font-weight: bold; color: #555; }
         input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
@@ -24,6 +24,8 @@
         #results-table tr:nth-child(even) { background-color: #f8f9fa; }
         #loading { display: none; text-align: center; padding: 20px; font-size: 18px; color: #0056b3; }
         .error { color: #dc3545; }
+        #worksheet-tabs button { background-color: #e9ecef; border: 1px solid #ccc; padding: 8px 12px; cursor: pointer; margin-right: 5px; border-radius: 4px 4px 0 0; }
+        #worksheet-tabs button.active { background-color: #007bff; color: white; border-color: #007bff; }
     </style>
 </head>
 <body>
@@ -47,13 +49,13 @@
                     </div>
 
                     <div>
-                        <label for="query-keywords">查询关键词 (每行一组, 组内用空格隔开)</label>
-                        <textarea id="query-keywords" name="query_keywords" placeholder="例如：&#10;LLM Quantization&#10;Large Language Model Quantization" required></textarea>
+                        <label for="query-keywords">查询关键词<br><small>(每行一组, 组内用英文逗号隔开)</small></label>
+                        <textarea id="query-keywords" name="query_keywords" placeholder="例如：&#10;LLM, Quantization&#10;Large Language Model, Quantization" required></textarea>
                     </div>
                     
                     <div>
-                        <label for="abstract-keywords">摘要必须包含的关键词 (每行一组)</label>
-                        <textarea id="abstract-keywords" name="abstract_keywords" placeholder="例如：&#10;LLM&#10;Quantization"></textarea>
+                        <label for="abstract-keywords">摘要必须包含的关键词<br><small>(每行一组, 组内用英文逗号隔开)</small></label>
+                        <textarea id="abstract-keywords" name="abstract_keywords" placeholder="例如：&#10;LLM, Quantization&#10;In-Context Learning"></textarea>
                     </div>
 
                     <div>
@@ -66,29 +68,14 @@
                         <select id="venues" name="venues" multiple size="8" style="width: 100%;"></select>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                        <div>
-                            <label for="limit">最大篇数</label>
-                            <input type="number" id="limit" name="limit" value="100">
-                        </div>
-                        <div>
-                            <label for="sort_by">排序方式</label>
-                            <select id="sort_by" name="sort_by" style="width: 100%; padding: 10px;">
-                                <option value="relevance" selected>相关度</option>
-                                <option value="citationCount">引用数</option>
-                                <option value="year">年份</option>
-                            </select>
-                        </div>
+                    <div>
+                        <label for="limit">最大篇数</label>
+                        <input type="number" id="limit" name="limit" value="100">
                     </div>
 
                     <div>
                         <label for="title_exclude_keywords">排除标题包含的词 (每行一个)</label>
                         <textarea id="title_exclude_keywords" name="title_exclude_keywords" placeholder="例如：&#10;review&#10;survey"></textarea>
-                    </div>
-
-                    <div>
-                        <label for="fields_of_study">研究领域 (英文, 逗号分隔)</label>
-                        <input type="text" id="fields_of_study" name="fields_of_study" placeholder="例如: Computer Science, Mathematics">
                     </div>
 
                 </fieldset>
@@ -99,18 +86,22 @@
         </div>
         <div class="results-section">
             <h2>搜索结果 <span id="search-summary" style="font-weight: normal; font-size: 0.8em; color: #555;"></span></h2>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div id="worksheet-tabs"></div>
+                <button id="export-btn" style="display: none; padding: 6px 12px; font-size: 14px; margin-left: auto;">导出为 Excel</button>
+            </div>
             <div id="loading">正在搜索中，请稍候...</div>
             <div id="error-message" class="error"></div>
             <table id="results-table" style="display:none;">
                 <thead>
                     <tr>
-                        <th style="width: 30%;">标题</th>
-                        <th style="width: 20%;">作者</th>
-                        <th style="width: 8%;">年份</th>
-                        <th style="width: 8%;">引用</th>
-                        <th style="width: 17%;">会议/期刊</th>
+                        <th style="width: 9%;">会议/期刊</th>
+                        <th style="width: 5%;">年份</th>
+                        <th style="width: 28%;">标题</th>
                         <th style="width: 12%;">匹配关键词</th>
-                        <th style="width: 5%;">链接</th>
+                        <th style="width: 31%;">作者</th>
+                        <th style="width: 8%;">引用</th>
+                        <th style="width: 7%;">链接</th>
                     </tr>
                 </thead>
                 <tbody></tbody>
@@ -122,6 +113,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             let currentSearchController = null; // 用于管理中止信号
             let searchStartTime;
+            let currentResults = {}; // 用于存储当前搜索的分组结果
+            let originalTitle = document.title;
+            let flashInterval = null;
 
             const venuesSelect = document.getElementById('venues');
             const searchForm = document.getElementById('search-form');
@@ -133,17 +127,46 @@
             const resultsBody = resultsTable.querySelector('tbody');
             const errorMessageDiv = document.getElementById('error-message');
             const searchSummarySpan = document.getElementById('search-summary');
+            const worksheetTabs = document.getElementById('worksheet-tabs');
+            const exportBtn = document.getElementById('export-btn');
+
+            function startFlashing(message) {
+                if (flashInterval) return; // 如果已经在闪烁，则不执行任何操作
+                let flashing = false;
+                flashInterval = setInterval(() => {
+                    document.title = flashing ? originalTitle : message;
+                    flashing = !flashing;
+                }, 800); // 每800毫秒切换一次
+            }
+
+            function stopFlashing() {
+                if (flashInterval) {
+                    clearInterval(flashInterval);
+                    flashInterval = null;
+                    document.title = originalTitle;
+                }
+            }
+
+            // 当用户切回此标签页时，停止闪烁
+            window.addEventListener('focus', stopFlashing);
 
             fetch('/api/venues')
                 .then(response => response.json())
                 .then(data => {
-                    venuesSelect.innerHTML = '';
-                    for (const key in data) {
-                        const option = document.createElement('option');
-                        option.value = key;
-                        option.textContent = key;
-                        venuesSelect.appendChild(option);
-                    }
+                    venuesSelect.innerHTML = ''; // 清空现有选项
+                    data.forEach(group => {
+                        const optgroup = document.createElement('optgroup');
+                        optgroup.label = group.category;
+                        
+                        group.venues.forEach(venue => {
+                            const option = document.createElement('option');
+                            option.value = venue.key;
+                            option.textContent = venue.name;
+                            optgroup.appendChild(option);
+                        });
+                        
+                        venuesSelect.appendChild(optgroup);
+                    });
                 })
                 .catch(error => console.error('加载会议列表失败:', error));
 
@@ -155,9 +178,34 @@
                 currentSearchController = null;
             }
 
+            function displayWorksheet(category) {
+                // 更新按钮的激活状态
+                document.querySelectorAll('#worksheet-tabs button').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.category === category);
+                });
+                
+                // 填充表格
+                resultsBody.innerHTML = '';
+                const papers = currentResults[category] || [];
+                papers.forEach(paper => {
+                    const row = resultsBody.insertRow();
+                    row.innerHTML = `
+                        <td>${paper.venue_name || ''}</td>
+                        <td>${paper.year || ''}</td>
+                        <td>${paper.title || ''}</td>
+                        <td>${paper.matched_keywords || ''}</td>
+                        <td>${paper.author || ''}</td>
+                        <td>${paper.citations || 0}</td>
+                        <td><a href="${paper.url}" target="_blank">链接</a></td>
+                    `;
+                });
+            }
+
             // 处理表单提交
             searchForm.addEventListener('submit', function(event) {
                 event.preventDefault();
+
+                stopFlashing(); // 开始新搜索前，停止任何可能正在进行的闪烁
                 
                 // 如果有正在进行的搜索，则中止它
                 if (currentSearchController) {
@@ -172,6 +220,9 @@
                 errorMessageDiv.textContent = '';
                 searchSummarySpan.textContent = '';
                 resultsBody.innerHTML = '';
+                worksheetTabs.innerHTML = ''; // 清空旧的工作表标签
+                exportBtn.style.display = 'none'; // 隐藏导出按钮
+                currentResults = {}; // 清空旧的结果
 
                 searchFieldset.disabled = true;
                 submitBtn.style.display = 'none';
@@ -184,9 +235,7 @@
                     year: document.getElementById('year').value,
                     venues: Array.from(venuesSelect.selectedOptions).map(opt => opt.value),
                     limit: document.getElementById('limit').value,
-                    sort_by: document.getElementById('sort_by').value,
-                    title_exclude_keywords: document.getElementById('title_exclude_keywords').value,
-                    fields_of_study: document.getElementById('fields_of_study').value
+                    title_exclude_keywords: document.getElementById('title_exclude_keywords').value
                 };
 
                 console.log("DEBUG: 即将发送到后端的数据:", JSON.stringify(data));
@@ -203,24 +252,32 @@
                     }
                     return response.json();
                 })
-                .then(papers => {
-                    if (papers.length === 0) {
+                .then(groupedData => {
+                    currentResults = groupedData;
+                    const categories = Object.keys(groupedData);
+                    const totalPapers = categories.reduce((sum, cat) => sum + groupedData[cat].length, 0);
+
+                    if (totalPapers === 0) {
                         errorMessageDiv.textContent = '没有找到符合条件的论文。';
                         return;
                     }
+
                     resultsTable.style.display = 'table';
-                    papers.forEach(paper => {
-                        const row = resultsBody.insertRow();
-                        row.innerHTML = `
-                            <td>${paper.title || ''}</td>
-                            <td>${paper.author || ''}</td>
-                            <td>${paper.year || ''}</td>
-                            <td>${paper.citations || 0}</td>
-                            <td>${paper.venue_name || ''}</td>
-                            <td>${paper.matched_keywords || ''}</td>
-                            <td><a href="${paper.url}" target="_blank">链接</a></td>
-                        `;
+                    exportBtn.style.display = 'block'; // 显示导出按钮
+                    
+                    // 创建工作表标签
+                    categories.forEach(category => {
+                        const button = document.createElement('button');
+                        button.textContent = `${category} (${groupedData[category].length})`;
+                        button.dataset.category = category;
+                        button.addEventListener('click', () => displayWorksheet(category));
+                        worksheetTabs.appendChild(button);
                     });
+                    
+                    // 默认显示第一个工作表
+                    if (categories.length > 0) {
+                        displayWorksheet(categories[0]);
+                    }
                 })
                 .catch(error => {
                     if (error.name === 'AbortError') {
@@ -238,10 +295,14 @@
                         if (!signal.aborted) {
                             const endTime = performance.now();
                             const durationInSeconds = ((endTime - searchStartTime) / 1000).toFixed(2);
-                            const paperCount = resultsBody.rows.length;
+                            const paperCount = Object.values(currentResults).reduce((sum, papers) => sum + papers.length, 0);
 
                             if (paperCount > 0) {
-                                searchSummarySpan.textContent = `(找到 ${paperCount} 篇, 耗时 ${durationInSeconds} 秒)`;
+                                searchSummarySpan.textContent = `(共找到 ${paperCount} 篇, 耗时 ${durationInSeconds} 秒)`;
+                                // 如果页面在后台，则开始闪烁标题以提醒用户
+                                if (document.hidden) {
+                                    startFlashing(`搜索完成! 共${paperCount}篇论文`);
+                                }
                             } else if (!errorMessageDiv.textContent.includes('错误')) {
                                 searchSummarySpan.textContent = `(耗时 ${durationInSeconds} 秒)`;
                             }
@@ -259,6 +320,57 @@
                 }
                 searchSummarySpan.textContent = '';
                 resetFormUI();
+            });
+
+            // 处理导出按钮点击
+            exportBtn.addEventListener('click', function() {
+                if (Object.keys(currentResults).length === 0) {
+                    alert('没有可导出的数据。');
+                    return;
+                }
+
+                const originalBtnText = exportBtn.textContent;
+                exportBtn.textContent = '正在生成...';
+                exportBtn.disabled = true;
+
+                fetch('/api/export', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentResults)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('导出失败。');
+                    }
+                    const header = response.headers.get('Content-Disposition');
+                    const parts = header.split(';');
+                    let filename = 'report.xlsx';
+                    parts.forEach(part => {
+                        if (part.trim().startsWith('filename=')) {
+                            filename = part.split('=')[1].trim().replace(/"/g, '');
+                        }
+                    });
+                    return response.blob().then(blob => ({ blob, filename }));
+                })
+                .then(({ blob, filename }) => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                })
+                .catch(error => {
+                    console.error('导出时出错:', error);
+                    alert(error.message);
+                })
+                .finally(() => {
+                    exportBtn.textContent = originalBtnText;
+                    exportBtn.disabled = false;
+                });
             });
         });
     </script>

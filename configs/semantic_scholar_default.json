@@ -1,4 +1,8 @@
 {
+  "default_title_exclude_keywords": [
+    "review", "survey", "perspective", "retrospective", "tutorial", 
+    "forum", "workshop", "overview", "course", "invite"
+  ],
     "ISSCC": { "venue": ["International Solid-State Circuits Conference"], "category": "Circuit" },
     "VLSI": { "venue": 
         [
@@ -25,9 +29,9 @@
     "MICRO": { "venue": ["Micro"], "category": "Architecture" },
     "ASPLOS": { "venue": ["International Conference on Architectural Support for Programming Languages and Operating Systems"], "category": "Architecture" },
     "HPCA": { "venue": ["International Symposium on High-Performance Computer Architecture"], "category": "Architecture" },
-    "TCAD": { "venue": ["IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems"], "category": "Others" },
-    "DAC": { "venue": ["Design Automation Conference"], "category": "Others" },
-    "ICCAD": { "venue": ["International Conference on Computer Aided Design"], "category": "Others" },
+    "TCAD": { "venue": ["IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems"], "category": "Hardware Others" },
+    "DAC": { "venue": ["Design Automation Conference"], "category": "Hardware Others" },
+    "ICCAD": { "venue": ["International Conference on Computer Aided Design"], "category": "Hardware Others" },
 
     "CVPR": { "venue": ["Computer Vision and Pattern Recognition"], "category": "CV" },
     "ICCV": { "venue": ["International Conference on Computer Vision"], "category": "CV" },

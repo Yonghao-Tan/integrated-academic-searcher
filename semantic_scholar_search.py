@@ -17,6 +17,10 @@ def find_top_venue(venue_str, venue_definitions):
 
     # 在所有定义的会议中查找匹配项
     for conf_name, conf_details in venue_definitions.items():
+        # 跳过非字典条目，例如 default_title_exclude_keywords
+        if not isinstance(conf_details, dict):
+            continue
+
         for pattern in conf_details.get('venue', []):
             if pattern.lower() in venue_lower or pattern.lower() in venue_str.lower():
                 return conf_name, conf_details.get('category', 'Others')
@@ -34,9 +38,14 @@ def search_semantic_scholar(topic, settings, venue_definitions):
     
     min_year = settings.get('min_year')
     limit = settings.get('limit_per_topic', 100)
-    sort_by = settings.get('sort_by', 'relevance')
-    title_exclude_keywords = settings.get('title_exclude_keywords', [])
-    fields_of_study = settings.get('fields_of_study', None)
+    # 尝试从 settings 获取用户定义的排除词列表
+    title_exclude_keywords = settings.get('title_exclude_keywords')
+
+    # 如果用户没有提供（即值为 None 或空列表），则从主配置文件中获取默认值
+    if not title_exclude_keywords:
+        title_exclude_keywords = venue_definitions.get('default_title_exclude_keywords', [])
+        
+    fields_of_study = ["Computer Science", "Engineering"]
     
     # 根据 venues_to_search_keys 从 venue_definitions 构建API请求列表
     api_venue_list = []
@@ -63,13 +72,8 @@ def search_semantic_scholar(topic, settings, venue_definitions):
                 'venue': api_venue_list,
                 'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId']
             }
-            if fields_of_study:
-                search_params['fields_of_study'] = fields_of_study
+            search_params['fields_of_study'] = fields_of_study
             
-            # 仅当 sort_by 是 API 支持的选项时才传递
-            if sort_by in ['relevance', 'citationCount']:
-                 search_params['sort'] = sort_by
-
             lazy_results = s2.search_paper(**search_params)
             
             # 手动迭代并加载数据
@@ -127,12 +131,8 @@ def search_semantic_scholar(topic, settings, venue_definitions):
         })
             
     # --- 本地排序 ---
-    # 如果 sort_by 是 'year'，则在本地进行排序
-    if sort_by == 'year':
-        top_papers.sort(key=lambda p: (-p.get('year', 0), -p.get('citations', 0)))
-    else:
-        # 否则使用默认排序（会议、年份、引用数）
-        top_papers.sort(key=lambda p: (p['venue_name'], -p.get('year', 0), -p.get('citations', 0)))
+    # 使用默认排序（会议、年份、引用数）
+    top_papers.sort(key=lambda p: (p['venue_name'], -p.get('year', 0), -p.get('citations', 0)))
             
     return top_papers
 
@@ -146,7 +146,7 @@ def run_search(topic, settings, venue_definitions):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="从 Semantic Scholar 批量搜索论文并导出到 Excel。")
     parser.add_argument("config", type=str, help="要使用的JSON配置文件路径 (例如 'config_algorithm.json')。")
-    parser.add_argument("--venues", type=str, default="configs/semantic_scholar_venues.json", help="包含会议/期刊定义的JSON文件路径。")
+    parser.add_argument("--venues", type=str, default="configs/semantic_scholar_default.json", help="包含会议/期刊定义的JSON文件路径。")
     args = parser.parse_args()
 
     total_start_time = time.time()
