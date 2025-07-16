@@ -34,7 +34,11 @@ def search_semantic_scholar(topic, settings, venue_definitions):
     abstract_keyword_groups = topic.get('abstract_keywords', [])
     # 从 topic 中获取要搜索的 venue key 列表
     venues_to_search_keys = topic.get('venues_to_search', [])
-    skip_abstract_venues = topic.get('skip_abstract_filter_for_venues', [])
+    
+    # 尝试从 topic 获取用户定义的跳过列表，如果没有则使用默认值
+    skip_abstract_venues = topic.get('skip_abstract_filter_for_venues')
+    if skip_abstract_venues is None:
+        skip_abstract_venues = venue_definitions.get('default_skip_abstract_filter_for_venues', [])
     
     min_year = settings.get('min_year')
     limit = settings.get('limit_per_topic', 100)
@@ -46,6 +50,11 @@ def search_semantic_scholar(topic, settings, venue_definitions):
         title_exclude_keywords = venue_definitions.get('default_title_exclude_keywords', [])
         
     fields_of_study = ["Computer Science", "Engineering"]
+    
+    # 处理 arXiv 最低引用数
+    min_arxiv_citations = settings.get('min_arxiv_citations')
+    if min_arxiv_citations is None:
+        min_arxiv_citations = venue_definitions.get('default_min_arxiv_citations', 0)
     
     # 根据 venues_to_search_keys 从 venue_definitions 构建API请求列表
     api_venue_list = []
@@ -104,6 +113,10 @@ def search_semantic_scholar(topic, settings, venue_definitions):
         if not found_venue:
             continue
 
+        # 如果是 arXiv 搜索，则根据引用数进一步筛选
+        if found_venue == 'arXiv' and paper.citationCount < min_arxiv_citations:
+            continue
+
         # 摘要关键词筛选 (带有例外和匹配记录逻辑)
         matched_keywords_in_abstract = []
         if found_venue in skip_abstract_venues:
@@ -140,8 +153,40 @@ def run_search(topic, settings, venue_definitions):
     """
     可从外部调用的搜索函数。
     它接收一个搜索主题和设置，返回论文列表。
+    它会检查是否需要将 arXiv 的搜索与其他会议分开处理。
     """
-    return search_semantic_scholar(topic, settings, venue_definitions)
+    venues_to_search = topic.get('venues_to_search', [])
+    
+    normal_venues = [v for v in venues_to_search if v != 'arXiv']
+    has_arxiv = 'arXiv' in venues_to_search
+    
+    all_papers = []
+
+    # 1. 如果有普通会议，则为它们执行一次搜索
+    if normal_venues:
+        venue_topic = topic.copy()
+        venue_topic['venues_to_search'] = normal_venues
+        print(f"--- 开始搜索普通会议: {', '.join(normal_venues)} ---")
+        all_papers.extend(search_semantic_scholar(venue_topic, settings, venue_definitions))
+
+    # 2. 如果选择了 arXiv，则为其单独执行一次搜索
+    if has_arxiv:
+        arxiv_topic = topic.copy()
+        arxiv_topic['venues_to_search'] = ['arXiv']
+        print(f"--- 开始单独搜索 arXiv ---")
+        all_papers.extend(search_semantic_scholar(arxiv_topic, settings, venue_definitions))
+
+    # 3. 如果两个都没选（例如，用户只想按关键词和年份搜索所有内容）
+    if not normal_venues and not has_arxiv and venues_to_search:
+         print(f"--- 按 venues_to_search 中的定义进行搜索 ---")
+         all_papers.extend(search_semantic_scholar(topic, settings, venue_definitions))
+    elif not venues_to_search:
+        print(f"--- 未指定任何会议，进行开放式搜索 ---")
+        all_papers.extend(search_semantic_scholar(topic, settings, venue_definitions))
+
+
+    return all_papers
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="从 Semantic Scholar 批量搜索论文并导出到 Excel。")
@@ -180,7 +225,7 @@ if __name__ == "__main__":
     total_papers_found = 0
 
     for topic in config.get('search_topics', []):
-        papers = search_semantic_scholar(topic, settings, venue_definitions)
+        papers = run_search(topic, settings, venue_definitions)
         if papers:
             direction = topic.get('direction', '未命名方向')
             papers_by_direction[direction] = papers

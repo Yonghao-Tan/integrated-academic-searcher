@@ -1,9 +1,11 @@
 {
   "default_title_exclude_keywords": [
-    "review", "survey", "perspective", "retrospective", "tutorial", 
-    "forum", "workshop", "overview", "course", "invite"
+    "review", "survey", "perspective", "retrospective", "tutorial", "forum", "workshop", "overview", "course", "invite", "usa", "analog", "transmitter", "modulator", "inverter", "convertor", "PLL", "Oscillator", "ADC", "DAC", "Transceiver", "Synthesis", "Transmission"
   ],
-    "ISSCC": { "venue": ["International Solid-State Circuits Conference"], "category": "Circuit" },
+  "default_min_arxiv_citations": 15,
+  "default_skip_abstract_filter_for_venues": ["ISSCC", "VLSI", "CICC", "ESSERC"],
+  "arXiv": { "venue": ["arxiv"], "category": "arXiv" },
+  "ISSCC": { "venue": ["International Solid-State Circuits Conference"], "category": "Circuit" },
     "VLSI": { "venue": 
         [
             "2025 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)",

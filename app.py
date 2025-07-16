@@ -7,7 +7,6 @@ from datetime import datetime
 
 # 导入现有的搜索脚本逻辑
 from semantic_scholar_search import run_search as semantic_scholar_run_search
-from arxiv_search import search_arxiv
 
 app = Flask(__name__)
 
@@ -96,6 +95,12 @@ def handle_search():
             # 只有当用户实际提供了排除关键词时，才将其添加到 settings 中以覆盖默认值
             if title_exclude_keywords:
                 settings['title_exclude_keywords'] = title_exclude_keywords
+
+            # 如果 arXiv 被选为 venue，则添加最低引用数
+            if 'arXiv' in data.get('venues', []):
+                min_citations = data.get('min_arxiv_citations')
+                if min_citations:
+                    settings['min_arxiv_citations'] = int(min_citations)
 
             papers = semantic_scholar_run_search(topic, settings, VENUE_DEFINITIONS)
             

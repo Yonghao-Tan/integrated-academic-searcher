@@ -68,6 +68,11 @@
                         <select id="venues" name="venues" multiple size="8" style="width: 100%;"></select>
                     </div>
                     
+                    <div id="arxiv-citations-container" style="display: none;">
+                        <label for="min-arxiv-citations">arXiv 最低引用数 (默认 15)</label>
+                        <input type="number" id="min-arxiv-citations" name="min_arxiv_citations" placeholder="例如: 15">
+                    </div>
+
                     <div>
                         <label for="limit">最大篇数</label>
                         <input type="number" id="limit" name="limit" value="100">
@@ -129,23 +134,43 @@
             const searchSummarySpan = document.getElementById('search-summary');
             const worksheetTabs = document.getElementById('worksheet-tabs');
             const exportBtn = document.getElementById('export-btn');
+            const venuesContainer = document.getElementById('venues-container');
+            const arxivCitationsContainer = document.getElementById('arxiv-citations-container');
 
-            function startFlashing(message) {
-                if (flashInterval) return; // 如果已经在闪烁，则不执行任何操作
-                let flashing = false;
-                flashInterval = setInterval(() => {
-                    document.title = flashing ? originalTitle : message;
-                    flashing = !flashing;
-                }, 800); // 每800毫秒切换一次
-            }
-
-            function stopFlashing() {
-                if (flashInterval) {
-                    clearInterval(flashInterval);
-                    flashInterval = null;
-                    document.title = originalTitle;
+            // 当会议/期刊选择变化时，检查是否选择了 arXiv
+            venuesSelect.addEventListener('change', function() {
+                const selectedOptions = Array.from(venuesSelect.selectedOptions).map(opt => opt.value);
+                if (selectedOptions.includes('arXiv')) {
+                    arxivCitationsContainer.style.display = 'block';
+                } else {
+                    arxivCitationsContainer.style.display = 'none';
                 }
-            }
+            });
+
+            // 实现更智能的点击取消/选择和拖动选择功能
+            let mouseDownTime = 0;
+            venuesSelect.addEventListener('mousedown', function(event) {
+                if (event.target.tagName === 'OPTION') {
+                    mouseDownTime = new Date().getTime();
+                }
+            });
+
+            venuesSelect.addEventListener('mouseup', function(event) {
+                if (event.target.tagName === 'OPTION') {
+                    const mouseUpTime = new Date().getTime();
+                    // 如果按下和松开的时间间隔很短，则视为一次“单击”
+                    if (mouseUpTime - mouseDownTime < 50) {
+                        event.preventDefault(); // 阻止默认的单击行为
+                        const option = event.target;
+                        option.selected = !option.selected;
+                        
+                        // 手动触发 change 事件
+                        const changeEvent = new Event('change', { bubbles: true });
+                        venuesSelect.dispatchEvent(changeEvent);
+                    }
+                    // 如果时间间隔较长，则不执行任何操作，让浏览器处理拖动选择
+                }
+            });
 
             // 当用户切回此标签页时，停止闪烁
             window.addEventListener('focus', stopFlashing);
@@ -169,6 +194,23 @@
                     });
                 })
                 .catch(error => console.error('加载会议列表失败:', error));
+
+            function startFlashing(message) {
+                if (flashInterval) return; // 如果已经在闪烁，则不执行任何操作
+                let flashing = false;
+                flashInterval = setInterval(() => {
+                    document.title = flashing ? originalTitle : message;
+                    flashing = !flashing;
+                }, 800); // 每800毫秒切换一次
+            }
+
+            function stopFlashing() {
+                if (flashInterval) {
+                    clearInterval(flashInterval);
+                    flashInterval = null;
+                    document.title = originalTitle;
+                }
+            }
 
             function resetFormUI() {
                 loadingDiv.style.display = 'none';
@@ -228,15 +270,20 @@
                 submitBtn.style.display = 'none';
                 cancelBtn.style.display = 'block';
 
+                const selectedVenues = Array.from(venuesSelect.selectedOptions).map(opt => opt.value);
                 const data = {
-                    source: document.querySelector('input[name="source"]:checked').value,
+                    source: 'semantic_scholar', // 源现在是固定的
                     query_keywords: document.getElementById('query-keywords').value,
                     abstract_keywords: document.getElementById('abstract-keywords').value,
                     year: document.getElementById('year').value,
-                    venues: Array.from(venuesSelect.selectedOptions).map(opt => opt.value),
+                    venues: selectedVenues,
                     limit: document.getElementById('limit').value,
                     title_exclude_keywords: document.getElementById('title_exclude_keywords').value
                 };
+
+                if (selectedVenues.includes('arXiv')) {
+                    data.min_arxiv_citations = document.getElementById('min-arxiv-citations').value;
+                }
 
                 console.log("DEBUG: 即将发送到后端的数据:", JSON.stringify(data));
 
