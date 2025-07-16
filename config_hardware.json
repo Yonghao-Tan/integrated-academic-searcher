@@ -1,0 +1,118 @@
+{
+  "_comment_main": "这是硬件领域的 Semantic Scholar 搜索配置",
+  "search_topics": [
+    {
+      "direction": "Hardware for AI",
+      "query_keywords": [
+          ["LLM", "Hardware"],
+          ["LLM", "Hardware Architecture"],
+          ["LLM", "Accelerator"],
+          ["VLM", "Hardware"],
+          ["VLM", "Hardware Architecture"],
+          ["VLM", "Accelerator"],
+          ["AI", "Hardware"],
+          ["AI", "Hardware Architecture"],
+          ["Accelerator", "ISSCC"]
+      ],
+      "abstract_keywords": [
+        ["Architecture", "Speed"],
+        ["Architecture", "Efficiency"],
+        ["Architecture", "Throughput"],
+        ["Hardware", "Speed"], 
+        ["Hardware", "Efficiency"], 
+        ["Hardware", "Throughput"],
+        ["Accelerate", "Speed"], 
+        ["Accelerate", "Efficiency"], 
+        ["Accelerate", "Throughput"],
+        ["Accelerator", "Speed"], 
+        ["Accelerator", "Efficiency"], 
+        ["Accelerator", "Throughput"],
+        ["Acceleration", "Speed"], 
+        ["Acceleration", "Efficiency"],
+        ["Acceleration", "Throughput"]
+      ],
+      "venue_category": "Hardware",
+      "skip_abstract_filter_for_venues": ["ISSCC", "VLSI", "CICC", "ESSERC"]
+    }
+  ],
+  "search_settings": {
+    "_comment_sort_by": "排序方式。可用选项: 'relevance' (相关度), 'citationCount' (引用数), 'influence' (影响力), 'publicationDate' (发表日期)",
+    "sort_by": "relevance",
+    "min_year": 2023,
+    "limit_per_topic": 100,
+    "title_exclude_keywords": ["review", "survey", "perspective", "retrospective", "tutorial", "forum", "workshop", "overview", "course", "invite", "usa", "analog", "transmitter", "modulator", "inverter", "convertor", "PLL"],
+    "fields_of_study": ["Computer Science", "Engineering"]
+  },
+  "venue_definitions": {
+    "_comment_venues": "在这里定义不同类别的顶级会议和期刊。键名(如'Hardware')应与search_topics中的'venue_category'对应。",
+    "Hardware": {
+        "ISSCC": {
+            "keywords": ["international solid-state circuits conference"],
+            "category": "Circuit",
+            "skip_abstract_filter": true
+        },
+        "VLSI": {
+            "keywords": ["Symposium on VLSI Technology"],
+            "category": "Circuit",
+            "skip_abstract_filter": true
+        },
+        "CICC": {
+            "keywords": ["custom integrated circuits conference"],
+            "category": "Circuit",
+            "skip_abstract_filter": true
+        },
+        "ESSERC": {
+            "keywords": ["European Solid-State Electronics Research Conference", "ESSERC", "European Conference on Solid-State Circuits", "ESSCIRC"],
+            "category": "Circuit",
+            "skip_abstract_filter": true
+        },
+        "DAC": {
+            "keywords": ["design automation conference"],
+            "category": "Others"
+        },
+        "ICCAD": {
+            "keywords": ["International Conference on Computer Aided Design","international conference on computer-aided design", "int. conf. comput.-aided design"],
+            "category": "Others"
+        },
+        "JSSC": {
+            "keywords": ["journal of solid-state circuits"],
+            "category": "Circuit",
+            "skip_abstract_filter": true
+        },
+        "TCAS-I": {
+            "keywords": [
+                "transactions on circuits and systems i",
+                "transactions on circuits and systems part 1",
+                "trans. circuits syst. i"
+            ],
+            "category": "Circuit",
+            "skip_abstract_filter": true
+        },
+        "TCAD": {
+            "keywords": [
+                "transactions on computer-aided design",
+                "transactions on computer-aided design of integrated circuits and systems",
+                "trans. comput.-aided design"
+            ],
+            "category": "Others"
+        },
+        "ISCA": {
+            "keywords": ["international symposium on computer architecture", "ISCA"],
+            "category": "Top Architecture"
+        },
+        "MICRO": {
+            "keywords": ["international symposium on microarchitecture", "MICRO"],
+            "category": "Top Architecture"
+        },
+        "ASPLOS": {
+            "keywords": ["architectural support for programming languages and operating systems", "ASPLOS"],
+            "category": "Top Architecture"
+        },
+        "HPCA": {
+            "keywords": ["international symposium on high-performance computer architecture", "HPCA"],
+            "category": "Top Architecture"
+        }
+    }
+  },
+  "output_file_prefix": "hardware_report"
+} 

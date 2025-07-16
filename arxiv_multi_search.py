@@ -22,13 +22,29 @@ CONFERENCE_MAPPING = [
     ('KDD', ['kdd']),
 ]
 
-def build_query(keywords, operator="AND"):
-    """根据关键词和操作符构建arXiv搜索查询字符串"""
-    processed_keywords = [f'"{kw}"' for kw in keywords]
-    return f" {operator} ".join(processed_keywords)
+def build_query(keyword_groups):
+    """
+    根据“组内AND，组间OR”的逻辑构建arXiv搜索查询字符串。
+    输入: [['LLM', 'Quantization'], ['Large Model', 'Quantization']]
+    输出: ('"LLM" AND "Quantization"') OR ('"Large Model" AND "Quantization"')
+    """
+    if not keyword_groups:
+        return ""
+
+    outer_groups = []
+    for inner_group in keyword_groups:
+        if not inner_group:
+            continue
+        # 组内AND
+        processed_keywords = [f'"{kw}"' for kw in inner_group]
+        and_group_str = " AND ".join(processed_keywords)
+        outer_groups.append(f"({and_group_str})")
+    
+    # 组间OR
+    return " OR ".join(outer_groups)
 
 
-def search_arxiv(query, direction_name, start_date, abstract_keywords=None, abstract_operator="AND", subjects=None, min_authors=1, limit=1000):
+def search_arxiv(query, direction_name, start_date, abstract_keyword_groups=None, subjects=None, min_authors=1, limit=1000):
     """
     在 arXiv 上搜索指定日期之后发布的论文。
 
@@ -36,8 +52,7 @@ def search_arxiv(query, direction_name, start_date, abstract_keywords=None, abst
         query (str): 搜索查询。
         direction_name (str): 当前搜索所属的研究方向名称。
         start_date (datetime): 搜索的起始日期。
-        abstract_keywords (list, optional): 摘要中必须包含的关键词列表。
-        abstract_operator (str, optional): 摘要关键词的匹配逻辑 ('AND'或'OR')。
+        abstract_keyword_groups (list of lists, optional): 摘要中必须匹配的关键词组。
         subjects (list, optional): 论文必须匹配的学科分类列表。
         min_authors (int, optional): 论文的最少作者数量。
         limit (int, optional): 从API获取的最大论文数。
@@ -87,13 +102,17 @@ def search_arxiv(query, direction_name, start_date, abstract_keywords=None, abst
                 continue
 
         summary_lower = paper.summary.lower()
-        if abstract_keywords:
-            if abstract_operator == 'OR':
-                if not any(kw.lower() in summary_lower for kw in abstract_keywords):
-                    continue
-            else:  # 默认为 AND 逻辑
-                if not all(kw.lower() in summary_lower for kw in abstract_keywords):
-                    continue
+        matched_keywords_in_abstract = []
+        if abstract_keyword_groups:
+            # 组间OR: 只要有一个内层分组(AND group)匹配成功，就通过
+            # 这里我们不能用 any()，因为要记录所有匹配上的词
+            for group in abstract_keyword_groups:
+                # 组内AND: 一个内层分组里的所有关键词都必须在摘要中出现
+                if all(kw.lower() in summary_lower for kw in group):
+                    matched_keywords_in_abstract.extend(group)
+            
+            if not matched_keywords_in_abstract:
+                continue
         
         papers.append({
             'direction': direction_name,
@@ -109,6 +128,7 @@ def search_arxiv(query, direction_name, start_date, abstract_keywords=None, abst
             'categories': ", ".join(paper.categories),
             'pdf_url': paper.pdf_url,
             'doi': paper.doi,
+            'matched_keywords': ", ".join(sorted(list(set(matched_keywords_in_abstract)))),
         })
 
     filter_end_time = time.time()
@@ -162,23 +182,20 @@ if __name__ == "__main__":
     
     for topic in config.get('search_topics', []):
         direction = topic.get('direction', '未命名方向')
-        query_keywords = topic.get('query_keywords', [])
-        operator = topic.get('operator', 'AND')
-        abstract_keywords = topic.get('abstract_keywords', [])
-        abstract_operator = topic.get('abstract_operator', 'AND')
-        subjects = topic.get('subjects', []) # 读取学科配置
+        query_keyword_groups = topic.get('query_keywords', [])
+        abstract_keyword_groups = topic.get('abstract_keywords', [])
+        subjects = topic.get('subjects', [])
 
-        if not query_keywords:
+        if not query_keyword_groups:
             print(f"跳过 '{direction}'，因为它没有定义 'query_keywords'。")
             continue
         
-        query = build_query(query_keywords, operator)
+        query = build_query(query_keyword_groups)
         papers = search_arxiv(
             query,
             direction_name=direction,
             start_date=start_date,
-            abstract_keywords=abstract_keywords,
-            abstract_operator=abstract_operator,
+            abstract_keyword_groups=abstract_keyword_groups,
             subjects=subjects,
             min_authors=min_authors,
             limit=limit_per_topic,
@@ -213,6 +230,7 @@ if __name__ == "__main__":
                     '更新日期': df['updated'],
                     '发表日期': df['published'],
                     '文章标题': df['title'],
+                    '匹配关键词': df['matched_keywords'],
                     '作者': df['author'],
                     'URL': df['url'],
                     '摘要': df['summary'],

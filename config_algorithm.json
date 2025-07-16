@@ -1,0 +1,41 @@
+{
+  "_comment_main": "这是算法领域的 Semantic Scholar 搜索配置",
+  "search_topics": [
+    {
+      "direction": "LLM Quantization",
+      "query_keywords": [
+        ["LLM", "Quantization"],
+        ["Large Language Model", "Quantization"]
+      ],
+      "abstract_keywords": [
+        ["quantization", "LLM"]
+      ],
+      "venue_category": "Algorithm"
+    }
+  ],
+  "search_settings": {
+    "_comment_sort_by": "排序方式。可用选项: 'relevance' (相关度), 'citationCount' (引用数), 'influence' (影响力), 'publicationDate' (发表日期)",
+    "sort_by": "relevance",
+    "min_year": 2022,
+    "limit_per_topic": 50,
+    "title_exclude_keywords": ["review", "survey", "perspective", "retrospective"],
+    "fields_of_study": ["Computer Science"]
+  },
+  "venue_definitions": {
+    "_comment_venues": "在这里定义不同类别的顶级会议和期刊。键名(如'Algorithm')应与search_topics中的'venue_category'对应。",
+    "Algorithm": {
+      "CVPR": ["computer vision and pattern recognition"],
+      "ICCV": ["international conference on computer vision"],
+      "ECCV": ["european conference on computer vision"],
+      "NeurIPS": ["neural information processing systems"],
+      "ICML": ["international conference on machine learning"],
+      "ICLR": ["international conference on learning representations"],
+      "ACL": ["association for computational linguistics"],
+      "EMNLP": ["empirical methods in natural language processing"],
+      "AAAI": ["aaai conference on artificial intelligence"],
+      "JMLR": ["journal of machine learning research"],
+      "TPAMI": ["pattern analysis and machine intelligence", "pami"]
+    }
+  },
+  "output_file_prefix": "algorithm_report"
+} 
