@@ -18,6 +18,7 @@ This is a powerful dual-mode academic paper search tool that integrates search c
     - **Grouped Results**: The results for each search direction are clearly presented in their own worksheet tab.
 - **Universal Features**:
     - **Excel Export**: Export complete, grouped search results directly from the web interface into a structured, multi-sheet Excel file.
+    - **Auto-Adjusting Column Width**: The column widths in the exported Excel file are automatically adjusted based on the content length, eliminating the need for manual adjustments.
     - **Command-Line Mode**: Retains the original batch processing mode, allowing pre-defined searches to be run from JSON configuration files.
     - **Tab Blinking Notification**: When a long-running search is complete, the browser tab will blink to notify the user.
     - **Highly Configurable**: Conferences, categories, and default settings are managed through simple JSON configuration files.
@@ -71,9 +72,10 @@ You will see an interface with two tabs:
 
 -   **Semantic Scholar Search**:
     1.  Fill in **Query Keywords**, **Abstract Keywords**, **Minimum Year**, etc.
-    2.  Select target **Conferences/Journals** from the multi-select list. If `arXiv` is selected, you can set a minimum citation count.
-    3.  Click **Search**. The results will be grouped by conference category and displayed in different worksheet tabs.
-    4.  Click the **Export to Excel** button to download all results as a multi-sheet `.xlsx` file.
+    2.  Use the **Use Bulk Search** checkbox to switch between search modes. The default bulk mode is faster but may be less precise. Unchecking it uses a more relevance-focused search that might return more accurate results.
+    3.  Select target **Conferences/Journals** from the multi-select list. If `arXiv` is selected, you can set a minimum citation count.
+    4.  Click **Search**. The results will be grouped by conference category and displayed in different worksheet tabs.
+    5.  Click the **Export to Excel** button to download all results as a multi-sheet `.xlsx` file.
 
 -   **arXiv Time-Window Search**:
     1.  The interface provides one **Search Direction** by default. You can fill in **Query Keywords**, **Abstract Keywords**, and **Subject Classifications**.
