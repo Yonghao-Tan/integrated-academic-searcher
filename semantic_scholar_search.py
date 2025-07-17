@@ -26,7 +26,7 @@ def find_top_venue(venue_str, venue_definitions):
                 return conf_name, conf_details.get('category', 'Others')
     return None, None
 
-def search_semantic_scholar(topic, settings, venue_definitions):
+def search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True):
     """使用Semantic Scholar进行搜索并筛选顶级论文"""
     
     direction = topic.get('direction', '未命名方向')
@@ -82,12 +82,17 @@ def search_semantic_scholar(topic, settings, venue_definitions):
                 'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId']
             }
             search_params['fields_of_study'] = fields_of_study
+            search_params['bulk'] = bulk_search
+            search_params['publication_date_or_year'] = str(min_year)
             
+            # 非批量搜索时，我们期望得到更精确的结果，因此加入排序
+            if not bulk_search:
+                search_params['sort'] = 'relevance'
+
             lazy_results = s2.search_paper(**search_params)
             
             # 手动迭代并加载数据
             for i, paper in enumerate(lazy_results):
-                if i >= limit: break
                 if paper.paperId not in all_results:
                     all_results[paper.paperId] = paper
 
@@ -99,6 +104,7 @@ def search_semantic_scholar(topic, settings, venue_definitions):
     # --- 本地筛选 ---
     top_papers = []
     for paper in all_results.values():
+        # print(paper.year, paper.venue)
         # 标题屏蔽筛选
         title_lower = paper.title.lower()
         if title_exclude_keywords and any(kw.lower() in title_lower for kw in title_exclude_keywords):
@@ -149,14 +155,21 @@ def search_semantic_scholar(topic, settings, venue_definitions):
             
     return top_papers
 
-def run_search(topic, settings, venue_definitions):
+def run_search(topic, settings, venue_definitions, bulk_search=True):
     """
     可从外部调用的搜索函数。
     它接收一个搜索主题和设置，返回论文列表。
-    它会检查是否需要将 arXiv 的搜索与其他会议分开处理。
+    - 当 bulk_search=True 时，它会检查是否需要将 arXiv 的搜索与其他会议分开处理以优化API请求。
+    - 当 bulk_search=False 时，它会将所有 venue 合并进行一次精确搜索。
     """
     venues_to_search = topic.get('venues_to_search', [])
     
+    if not bulk_search:
+        # 非批量模式：一次性搜索所有指定 venue，追求更相关的结果
+        print(f"--- 在非批量模式下开始精确搜索: {', '.join(venues_to_search) if venues_to_search else '所有会议'} ---")
+        return search_semantic_scholar(topic, settings, venue_definitions, bulk_search=False)
+
+    # --- 批量模式逻辑 ---
     normal_venues = [v for v in venues_to_search if v != 'arXiv']
     has_arxiv = 'arXiv' in venues_to_search
     
@@ -166,24 +179,20 @@ def run_search(topic, settings, venue_definitions):
     if normal_venues:
         venue_topic = topic.copy()
         venue_topic['venues_to_search'] = normal_venues
-        print(f"--- 开始搜索普通会议: {', '.join(normal_venues)} ---")
-        all_papers.extend(search_semantic_scholar(venue_topic, settings, venue_definitions))
+        print(f"--- 开始批量搜索普通会议: {', '.join(normal_venues)} ---")
+        all_papers.extend(search_semantic_scholar(venue_topic, settings, venue_definitions, bulk_search=True))
 
     # 2. 如果选择了 arXiv，则为其单独执行一次搜索
     if has_arxiv:
         arxiv_topic = topic.copy()
         arxiv_topic['venues_to_search'] = ['arXiv']
-        print(f"--- 开始单独搜索 arXiv ---")
-        all_papers.extend(search_semantic_scholar(arxiv_topic, settings, venue_definitions))
+        print(f"--- 开始单独批量搜索 arXiv ---")
+        all_papers.extend(search_semantic_scholar(arxiv_topic, settings, venue_definitions, bulk_search=True))
 
-    # 3. 如果两个都没选（例如，用户只想按关键词和年份搜索所有内容）
-    if not normal_venues and not has_arxiv and venues_to_search:
-         print(f"--- 按 venues_to_search 中的定义进行搜索 ---")
-         all_papers.extend(search_semantic_scholar(topic, settings, venue_definitions))
-    elif not venues_to_search:
-        print(f"--- 未指定任何会议，进行开放式搜索 ---")
-        all_papers.extend(search_semantic_scholar(topic, settings, venue_definitions))
-
+    # 3. 如果 venues_to_search 为空，则进行开放式搜索
+    if not venues_to_search:
+        print(f"--- 未指定任何会议，进行开放式批量搜索 ---")
+        all_papers.extend(search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True))
 
     return all_papers
 
@@ -225,7 +234,9 @@ if __name__ == "__main__":
     total_papers_found = 0
 
     for topic in config.get('search_topics', []):
-        papers = run_search(topic, settings, venue_definitions)
+        # 从命令行或配置文件控制 bulk_search，这里默认为 True
+        use_bulk = topic.get('bulk_search', True) 
+        papers = run_search(topic, settings, venue_definitions, bulk_search=use_bulk)
         if papers:
             direction = topic.get('direction', '未命名方向')
             papers_by_direction[direction] = papers

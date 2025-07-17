@@ -82,6 +82,18 @@
             text-align: center;
         }
         #lang-switcher { margin: 10px; font-size: 14px; padding: 5px 10px; cursor: pointer; }
+        
+        /* 增大“批量搜索”复选框的样式 */
+        #bulk-search {
+            transform: scale(1.4);
+            margin-right: 8px;
+        }
+        /* 用于将复选框和其标签/描述对齐的容器 */
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -112,6 +124,11 @@
                         <div>
                             <label for="year" data-lang="min_year_label">Minimum Year</label>
                             <input type="number" id="year" name="year" data-lang-placeholder="min_year_placeholder" value="2023">
+                        </div>
+
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="bulk-search" name="bulk_search" checked>
+                            <label for="bulk-search" data-lang="bulk_search_label" data-lang-desc="bulk_search_desc"></label>
                         </div>
 
                         <div id="venues-container">
@@ -512,24 +529,28 @@
                 cancelBtn.style.display = 'block';
 
                 const selectedVenues = Array.from(venuesSelect.selectedOptions).map(opt => opt.value);
-                const data = {
+                const bulkSearch = document.getElementById('bulk-search').checked;
+
+                const body = {
                     source: 'semantic_scholar',
                     query_keywords: document.getElementById('query-keywords').value,
                     abstract_keywords: document.getElementById('abstract-keywords').value,
                     year: document.getElementById('year').value,
                     venues: selectedVenues,
                     limit: document.getElementById('limit').value,
-                    title_exclude_keywords: document.getElementById('title_exclude_keywords').value
+                    title_exclude_keywords: document.getElementById('title_exclude_keywords').value,
+                    min_arxiv_citations: document.getElementById('min-arxiv-citations').value,
+                    bulk_search: bulkSearch
                 };
 
                 if (selectedVenues.includes('arXiv')) {
-                    data.min_arxiv_citations = document.getElementById('min-arxiv-citations').value;
+                    body.min_arxiv_citations = document.getElementById('min-arxiv-citations').value;
                 }
 
                 fetch('/api/search', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
+                    body: JSON.stringify(body),
                     signal: signal
                 })
                 .then(response => {

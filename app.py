@@ -89,8 +89,9 @@ def handle_search():
         limit = int(data.get('limit', 100))
         title_exclude_keywords_raw = data.get('title_exclude_keywords', '').strip()
         title_exclude_keywords = [line.strip() for line in title_exclude_keywords_raw.split('\n') if line.strip()]
+        bulk_search = data.get('bulk_search', True) # 默认为 True
         
-        print(f"DEBUG: 从前端接收到的数据: \nquery_keywords: {query_keywords}\nabstract_keywords: {abstract_keywords}\nyear: {min_year}\nvenues: {data.get('venues', [])}\nlimit: {limit}\ntitle_exclude_keywords: {title_exclude_keywords}") # 调试打印
+        print(f"DEBUG: 从前端接收到的数据: \nquery_keywords: {query_keywords}\nabstract_keywords: {abstract_keywords}\nyear: {min_year}\nvenues: {data.get('venues', [])}\nlimit: {limit}\ntitle_exclude_keywords: {title_exclude_keywords}\nbulk_search: {bulk_search}") # 调试打印
 
         results = []
         formatted_results = []
@@ -115,7 +116,7 @@ def handle_search():
                 if min_citations:
                     settings['min_arxiv_citations'] = int(min_citations)
 
-            papers = semantic_scholar_run_search(topic, settings, VENUE_DEFINITIONS)
+            papers = semantic_scholar_run_search(topic, settings, VENUE_DEFINITIONS, bulk_search)
             
             # 按 category 分组
             from collections import defaultdict

@@ -11,6 +11,8 @@
     "abstract_keywords_placeholder": "e.g.,\\nLLM, Quantization\\nIn-Context Learning",
     "min_year_label": "Minimum Year",
     "min_year_placeholder": "e.g., 2023",
+    "bulk_search_label": "Use Bulk Search",
+    "bulk_search_desc": "(Recommended) Faster, but may yield less relevant results.",
     "venues_label": "Conferences/Journals (Multi-select)",
     "min_arxiv_citations_label": "arXiv Minimum Citations (Default 15)",
     "min_arxiv_citations_placeholder": "e.g., 15",

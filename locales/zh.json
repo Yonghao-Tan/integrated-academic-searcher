@@ -11,6 +11,8 @@
     "abstract_keywords_placeholder": "例如：\\nLLM, Quantization\\nIn-Context Learning",
     "min_year_label": "最低年份",
     "min_year_placeholder": "例如: 2023",
+    "bulk_search_label": "使用批量搜索",
+    "bulk_search_desc": "（推荐）速度更快，但结果可能不够精确。",
     "venues_label": "会议/期刊 (可多选)",
     "min_arxiv_citations_label": "arXiv 最低引用数 (默认 15)",
     "min_arxiv_citations_placeholder": "例如: 15",
