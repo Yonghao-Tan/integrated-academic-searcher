@@ -4,6 +4,7 @@ import traceback
 import pandas as pd
 import io
 from datetime import datetime
+from openpyxl.utils import get_column_letter
 
 # 导入现有的搜索脚本逻辑
 from semantic_scholar_search import run_search as semantic_scholar_run_search
@@ -116,7 +117,7 @@ def handle_search():
                 if min_citations:
                     settings['min_arxiv_citations'] = int(min_citations)
 
-            papers = semantic_scholar_run_search(topic, settings, VENUE_DEFINITIONS, bulk_search)
+            papers = semantic_scholar_run_search(topic, settings, VENUE_DEFINITIONS)
             
             # 按 category 分组
             from collections import defaultdict
@@ -135,27 +136,6 @@ def handle_search():
                 grouped_results[category].append(formatted_paper)
 
             formatted_results = grouped_results
-
-        # elif source == 'arxiv':
-        #     # 对于 arxiv，我们只用第一个关键词组来构建简单查询
-        #     simple_query = " ".join(query_keywords[0]) if query_keywords else ""
-        #     # 对于 arxiv 的摘要筛选，我们将所有关键词扁平化处理
-        #     simple_abstract_keywords = [kw for group in abstract_keywords for kw in group]
-            
-        #     papers, _ = search_arxiv(
-        #         query=simple_query,
-        #         abstract_keywords=simple_abstract_keywords,
-        #         min_year=min_year,
-        #         limit=200 # 默认值
-        #     )
-        #     # 格式化结果
-        #     formatted_results = [{
-        #         'title': p.get('title'),
-        #         'author': p.get('author'),
-        #         'year': p.get('year'),
-        #         'venue_name': p.get('found_conference') or p.get('primary_category'),
-        #         'url': p.get('url')
-        #     } for p in papers]
         
         return jsonify(formatted_results)
 
@@ -255,6 +235,20 @@ def export_to_excel():
                 sheet_name = safe_category[:31] # Excel工作表名长度限制为31个字符
 
                 df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False)
+
+                # --- 新增：为每个工作表自动调整列宽 ---
+                worksheet = writer.sheets[sheet_name]
+                for idx, col in enumerate(df_for_excel, 1):
+                    series = df_for_excel[col]
+                    try:
+                        max_len = max(
+                            series.astype(str).map(len).max(),
+                            len(str(series.name))
+                        ) + 4
+                    except (ValueError, TypeError):
+                        max_len = len(str(series.name)) + 4
+                    
+                    worksheet.column_dimensions[get_column_letter(idx)].width = max_len
         
         output.seek(0)
         
@@ -323,6 +317,20 @@ def export_arxiv_to_excel():
                 sheet_name = safe_name[:31] # Excel工作表名长度限制为31个字符
 
                 df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False)
+
+                # --- 新增：为每个工作表自动调整列宽 ---
+                worksheet = writer.sheets[sheet_name]
+                for idx, col in enumerate(df_for_excel, 1):
+                    series = df_for_excel[col]
+                    try:
+                        max_len = max(
+                            series.astype(str).map(len).max(),
+                            len(str(series.name))
+                        ) + 4
+                    except (ValueError, TypeError):
+                        max_len = len(str(series.name)) + 4
+                    
+                    worksheet.column_dimensions[get_column_letter(idx)].width = max_len
         
         output.seek(0)
         

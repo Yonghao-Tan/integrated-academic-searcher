@@ -4,6 +4,7 @@ import pandas as pd
 import arxiv
 import json
 from datetime import datetime, timedelta, timezone
+from openpyxl.utils import get_column_letter
 
 # 用于筛选的顶级会议/期刊的映射关系
 # 格式为: (正式显示名称, [所有相关的小写搜索关键词])
@@ -257,6 +258,20 @@ if __name__ == "__main__":
                 safe_sheet_name = safe_sheet_name[:31] # Excel 工作表名长度限制为31个字符
                 
                 df_for_excel.to_excel(writer, sheet_name=safe_sheet_name, index=False)
+                
+                # --- 新增：为每个工作表自动调整列宽 ---
+                worksheet = writer.sheets[safe_sheet_name]
+                for idx, col in enumerate(df_for_excel, 1):
+                    series = df_for_excel[col]
+                    try:
+                        max_len = max(
+                            series.astype(str).map(len).max(),
+                            len(str(series.name))
+                        ) + 4
+                    except (ValueError, TypeError):
+                        max_len = len(str(series.name)) + 4
+                    
+                    worksheet.column_dimensions[get_column_letter(idx)].width = max_len
 
         print(f"\n结果已成功导出到 {output_file}，每个研究方向对应一个工作表。")
         
