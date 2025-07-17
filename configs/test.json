@@ -27,10 +27,11 @@
     }
   ],
   "search_settings": {
-    "min_year": 2025,
+    "bulk_search": true,
+    "min_year": 2023,
     "limit_per_topic": 100,
     "min_arxiv_citations": 10,
     "title_exclude_keywords": ["review", "survey", "perspective", "retrospective", "tutorial", "forum", "workshop", "overview", "course", "invite", "usa", "analog", "transmitter", "modulator", "inverter", "convertor", "PLL", "Oscillator", "ADC", "DAC", "Transceiver", "Synthesis", "Transmission"]
   },
-  "output_file_prefix": "./outputs/semantic_scholar_3d_report"
+  "output_file_prefix": "./outputs/test"
 } 

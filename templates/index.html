@@ -259,6 +259,9 @@
 
             const langSwitcher = document.getElementById('lang-switcher');
 
+            // 确保 bulk search 复选框在页面加载时默认被选中
+            document.getElementById('bulk-search').checked = true;
+
             async function fetchTranslations(lang) {
                 try {
                     const response = await fetch(`/locales/${lang}.json`);

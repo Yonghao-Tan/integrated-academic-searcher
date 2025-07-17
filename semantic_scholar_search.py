@@ -4,6 +4,7 @@ import pandas as pd
 import json
 from datetime import datetime
 from semanticscholar.SemanticScholar import SemanticScholar
+from openpyxl.utils import get_column_letter
 
 def find_top_venue(venue_str, venue_definitions):
     """
@@ -83,7 +84,7 @@ def search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True
             }
             search_params['fields_of_study'] = fields_of_study
             search_params['bulk'] = bulk_search
-            search_params['publication_date_or_year'] = str(min_year)
+            search_params['publication_date_or_year'] = str(min_year) + ':'
             
             # 非批量搜索时，我们期望得到更精确的结果，因此加入排序
             if not bulk_search:
@@ -155,7 +156,7 @@ def search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True
             
     return top_papers
 
-def run_search(topic, settings, venue_definitions, bulk_search=True):
+def run_search(topic, settings, venue_definitions):
     """
     可从外部调用的搜索函数。
     它接收一个搜索主题和设置，返回论文列表。
@@ -163,7 +164,7 @@ def run_search(topic, settings, venue_definitions, bulk_search=True):
     - 当 bulk_search=False 时，它会将所有 venue 合并进行一次精确搜索。
     """
     venues_to_search = topic.get('venues_to_search', [])
-    
+    bulk_search = settings.get('bulk_search', True)
     if not bulk_search:
         # 非批量模式：一次性搜索所有指定 venue，追求更相关的结果
         print(f"--- 在非批量模式下开始精确搜索: {', '.join(venues_to_search) if venues_to_search else '所有会议'} ---")
@@ -234,9 +235,7 @@ if __name__ == "__main__":
     total_papers_found = 0
 
     for topic in config.get('search_topics', []):
-        # 从命令行或配置文件控制 bulk_search，这里默认为 True
-        use_bulk = topic.get('bulk_search', True) 
-        papers = run_search(topic, settings, venue_definitions, bulk_search=use_bulk)
+        papers = run_search(topic, settings, venue_definitions)
         if papers:
             direction = topic.get('direction', '未命名方向')
             papers_by_direction[direction] = papers
@@ -282,6 +281,20 @@ if __name__ == "__main__":
 
                     print(f"  > 正在写入工作表 '{sheet_name}' ({len(group_df)} 篇)")
                     df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False)
+                    
+                    # --- 新增：为每个工作表自动调整列宽 ---
+                    worksheet = writer.sheets[sheet_name]
+                    for idx, col in enumerate(df_for_excel, 1):
+                        series = df_for_excel[col]
+                        try:
+                            max_len = max(
+                                series.astype(str).map(len).max(),
+                                len(str(series.name))
+                            ) + 4
+                        except (ValueError, TypeError):
+                            max_len = len(str(series.name)) + 4
+                        
+                        worksheet.column_dimensions[get_column_letter(idx)].width = max_len
                     
         print(f"\n结果已成功导出到 {output_file}")
 
