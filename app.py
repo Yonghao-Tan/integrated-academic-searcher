@@ -30,6 +30,12 @@ def serve_config(filename):
     from flask import send_from_directory
     return send_from_directory('configs', filename)
 
+@app.route('/locales/<path:filename>')
+def serve_locale(filename):
+    """提供对 locales 目录中本地化文件的访问"""
+    from flask import send_from_directory
+    return send_from_directory('locales', filename)
+
 @app.route('/api/venues')
 def get_venues():
     """提供按类别分组的所有会议/期刊的列表，供前端使用"""
@@ -200,24 +206,47 @@ def handle_arxiv_search():
 def export_to_excel():
     """将分组的搜索结果导出为 Excel 文件"""
     try:
-        grouped_data = request.json
+        request_data = request.json
+        lang = request_data.get('lang', 'zh') # 默认为中文
+        grouped_data = request_data.get('data', {})
         
+        headers = {
+            'zh': {
+                'venue_name': '会议/期刊',
+                'year': '年份',
+                'title': '文章标题',
+                'matched_keywords': '匹配的摘要词',
+                'author': '作者',
+                'citations': '引用数',
+                'url': 'URL'
+            },
+            'en': {
+                'venue_name': 'Conference/Journal',
+                'year': 'Year',
+                'title': 'Title',
+                'matched_keywords': 'Matched Abstract Keywords',
+                'author': 'Authors',
+                'citations': 'Citations',
+                'url': 'URL'
+            }
+        }
+        current_headers = headers.get(lang, headers['zh'])
+
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             for category, papers in grouped_data.items():
                 if not papers:
                     continue
                 
-                # 准备用于输出的DataFrame
                 df = pd.DataFrame(papers)
                 df_for_excel = pd.DataFrame({
-                    '会议/期刊': df['venue_name'],
-                    '年份': df['year'],
-                    '文章标题': df['title'],
-                    '匹配的摘要词': df['matched_keywords'],
-                    '作者': df['author'],
-                    '引用数': df['citations'],
-                    'URL': df['url']
+                    current_headers['venue_name']: df['venue_name'],
+                    current_headers['year']: df['year'],
+                    current_headers['title']: df['title'],
+                    current_headers['matched_keywords']: df['matched_keywords'],
+                    current_headers['author']: df['author'],
+                    current_headers['citations']: df['citations'],
+                    current_headers['url']: df['url']
                 })
 
                 # 创建安全的工作表名称
@@ -248,7 +277,29 @@ def export_to_excel():
 def export_arxiv_to_excel():
     """将分组的 arXiv 搜索结果导出为 Excel 文件"""
     try:
-        grouped_data = request.json
+        request_data = request.json
+        lang = request_data.get('lang', 'zh') # 默认为中文
+        grouped_data = request_data.get('data', {})
+
+        headers = {
+            'zh': {
+                'updated': '更新日期',
+                'published': '发表日期',
+                'title': '文章标题',
+                'matched_keywords': '匹配的关键词',
+                'author': '作者',
+                'url': 'URL'
+            },
+            'en': {
+                'updated': 'Updated',
+                'published': 'Published',
+                'title': 'Title',
+                'matched_keywords': 'Matched Keywords',
+                'author': 'Authors',
+                'url': 'URL'
+            }
+        }
+        current_headers = headers.get(lang, headers['zh'])
         
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
@@ -256,15 +307,14 @@ def export_arxiv_to_excel():
                 if not papers:
                     continue
                 
-                # 准备用于输出的DataFrame
                 df = pd.DataFrame(papers)
                 df_for_excel = pd.DataFrame({
-                    '更新日期': df['updated'],
-                    '发表日期': df['published'],
-                    '文章标题': df['title'],
-                    '匹配的关键词': df['matched_keywords'],
-                    '作者': df['author'],
-                    'URL': df['url']
+                    current_headers['updated']: df['updated'],
+                    current_headers['published']: df['published'],
+                    current_headers['title']: df['title'],
+                    current_headers['matched_keywords']: df['matched_keywords'],
+                    current_headers['author']: df['author'],
+                    current_headers['url']: df['url']
                 })
 
                 # 创建安全的工作表名称

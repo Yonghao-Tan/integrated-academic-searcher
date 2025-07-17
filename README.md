@@ -1,119 +1,121 @@
 # Academic Paper Search Tool: Semantic Scholar & arXiv, Advanced Filters, Excel Export
 
-这是一个功能强大的双模式学术论文搜索工具，集成了对 **Semantic Scholar** 和 **arXiv** 的搜索，并提供了高级筛选、多工作表结果分组和一键Excel导出功能。
+[中文版](./README_zh.md)
 
-## 功能
+This is a powerful dual-mode academic paper search tool that integrates search capabilities for both **Semantic Scholar** and **arXiv**. It features advanced filtering, multi-sheet result grouping, and one-click Excel export.
 
-- **双面板Web界面**: 一个直观的单页应用程序，包含两个独立的功能面板，用户可以在 **Semantic Scholar 搜索** 和 **arXiv 时间窗口搜索** 之间无缝切换。
-- **Semantic Scholar 搜索**:
-    - **高级筛选**: 按标题关键词、摘要关键词、发表年份和特定会议/期刊进行筛选。
-    - **关键词排除**: 根据标题中的特定词语排除论文。
-    - **分类结果**: 搜索结果按其学术类别（如 CV, NLP, Architecture）自动分组。
-    - **标签页视图**: 动态的“工作表”视图允许用户在不同类别的结果之间切换。
-- **arXiv 时间窗口搜索**:
-    - **多方向搜索**: 在一次查询中定义多个独立的搜索方向，每个方向都有自己的关键词和学科分类。
-    - **时间窗口**: 查找在指定时间段内（例如过去7天）在arXiv上最新更新的论文。
-    - **分组结果**: 每个搜索方向的结果都在其自己的工作表标签页中清晰呈现。
-- **通用功能**:
-    - **Excel导出**: 直接从Web界面将完整、分组的搜索结果导出为结构化的多工作表Excel文件。
-    - **命令行模式**: 保留了原始的批处理模式，可从JSON配置文件中运行预定义的搜索。
-    - **标签页闪烁提醒**: 当耗时较长的搜索完成时，浏览器标签页会闪烁以通知用户。
-    - **高度可配置**: 会议、类别和默认设置通过简单的JSON配置文件进行管理。
+## Features
 
-## 项目结构
+- **Dual-Panel Web Interface**: An intuitive single-page application with two independent functional panels, allowing users to switch seamlessly between **Semantic Scholar Search** and **arXiv Time-Window Search**.
+- **Semantic Scholar Search**:
+    - **Advanced Filtering**: Filter papers by title keywords, abstract keywords, publication year, and specific conferences/journals.
+    - **Keyword Exclusion**: Exclude papers based on specific words in their titles.
+    - **Categorized Results**: Search results are automatically grouped by their academic category (e.g., CV, NLP, Architecture).
+    - **Tabbed View**: A dynamic worksheet view allows users to switch between results from different categories.
+- **arXiv Time-Window Search**:
+    - **Multi-Direction Search**: Define multiple independent search "directions" in a single query, each with its own keywords and subject classifications.
+    - **Time Window**: Find the latest papers updated on arXiv within a specified time frame (e.g., the last 7 days).
+    - **Grouped Results**: The results for each search direction are clearly presented in their own worksheet tab.
+- **Universal Features**:
+    - **Excel Export**: Export complete, grouped search results directly from the web interface into a structured, multi-sheet Excel file.
+    - **Command-Line Mode**: Retains the original batch processing mode, allowing pre-defined searches to be run from JSON configuration files.
+    - **Tab Blinking Notification**: When a long-running search is complete, the browser tab will blink to notify the user.
+    - **Highly Configurable**: Conferences, categories, and default settings are managed through simple JSON configuration files.
+
+## Project Structure
 
 ```
-├── app.py                      # 主 Flask Web应用程序，处理API路由和前端逻辑。
-├── semantic_scholar_search.py    # 核心搜索逻辑，与 Semantic Scholar API 交互。
-├── arxiv_multi_search.py       # 核心搜索逻辑，与 arXiv API 交互。
+├── app.py                      # Main Flask web application, handles API routing and front-end logic.
+├── semantic_scholar_search.py    # Core search logic, interacts with the Semantic Scholar API.
+├── arxiv_multi_search.py       # Core search logic, interacts with the arXiv API.
 ├── templates/
-│   └── index.html              # 单页前端应用程序 (HTML, CSS, JS)。
+│   └── index.html              # Single-page front-end application (HTML, CSS, JS).
 ├── configs/
-│   ├── semantic_scholar_default.json # 定义所有认可的会议、其类别和默认设置。
-│   ├── semantic_scholar_algorithm.json # Semantic Scholar批处理搜索的示例配置。
-│   ├── arxiv_window.json       # arXiv时间窗口搜索的示例配置。
-│   └── ...                     # 其他示例批处理搜索配置。
-├── outputs/                      # 从CLI模式导出的Excel文件的默认目录。
-└── requirements.txt            # Python 依赖项。
+│   ├── semantic_scholar_default.json # Defines all recognized conferences, their categories, and default settings.
+│   ├── semantic_scholar_algorithm.json # Example configuration for Semantic Scholar batch search.
+│   ├── arxiv_window.json       # Example configuration for arXiv time-window search.
+│   └── ...                     # Other example batch search configurations.
+├── outputs/                      # Default directory for Excel files exported from CLI mode.
+└── requirements.txt            # Python dependencies.
 ```
 
-## 如何使用
+## How to Use
 
-### 1. Web UI 模式 (推荐)
+### 1. Web UI Mode (Recommended)
 
-Web界面提供了最完整和最强大的交互体验。
+The web interface provides the most complete and powerful interactive experience.
 
-**a. 安装依赖**
+**a. Install Dependencies**
 
-首先，安装所需的 Python 包：
+First, install the required Python packages:
 ```bash
 pip install -r requirements.txt
 ```
 
-**b. 运行服务器**
+**b. Run the Server**
 
-启动 Flask 开发服务器：
+Start the Flask development server:
 ```bash
 python3 app.py
 ```
-服务器将启动，您将看到表明它正在运行的输出。
+The server will start, and you will see output indicating that it is running.
 
-**c. 访问用户界面**
+**c. Access the User Interface**
 
-打开您的网络浏览器并导航至：
+Open your web browser and navigate to:
 [http://127.0.0.1:5001/](http://127.0.0.1:5001/)
 
-**d. 使用界面**
+**d. Using the Interface**
 
-您会看到一个带有两个选项卡的界面：
+You will see an interface with two tabs:
 
--   **Semantic Scholar 搜索**:
-    1.  填写**查询关键词**、**摘要关键词**、**最低年份**等。
-    2.  从可多选的列表中选择目标**会议/期刊**。如果选择了 `arXiv`，可以设置最低引用数。
-    3.  点击**搜索**。结果将按会议类别分组显示在不同的工作表标签中。
-    4.  点击**导出为 Excel** 按钮，可以将所有结果下载为一个多工作表的 `.xlsx` 文件。
+-   **Semantic Scholar Search**:
+    1.  Fill in **Query Keywords**, **Abstract Keywords**, **Minimum Year**, etc.
+    2.  Select target **Conferences/Journals** from the multi-select list. If `arXiv` is selected, you can set a minimum citation count.
+    3.  Click **Search**. The results will be grouped by conference category and displayed in different worksheet tabs.
+    4.  Click the **Export to Excel** button to download all results as a multi-sheet `.xlsx` file.
 
--   **arXiv 时间窗口搜索**:
-    1.  界面默认提供一个**搜索方向**。您可以填写**查询关键词**、**摘要关键词**和**学科分类**。
-    2.  点击 **+ 添加搜索方向** 按钮可以创建更多独立的搜索组。
-    3.  在页面底部设置**通用参数**，如搜索天数、最大篇数等。
-    4.  点击**搜索**。每个搜索方向的结果将显示在各自的工作表标签中。
-    5.  同样，您也可以将所有结果**导出为 Excel**。
+-   **arXiv Time-Window Search**:
+    1.  The interface provides one **Search Direction** by default. You can fill in **Query Keywords**, **Abstract Keywords**, and **Subject Classifications**.
+    2.  Click the **+ Add Search Direction** button to create more independent search groups.
+    3.  At the bottom of the page, set **Common Parameters** such as search days, maximum number of papers, etc.
+    4.  Click **Search**. The results for each search direction will be displayed in their respective worksheet tabs.
+    5.  Similarly, you can also **Export all results to Excel**.
 
-### 2. 命令行模式 (用于批处理)
+### 2. Command-Line Mode (for Batch Processing)
 
-该脚本也可以直接从命令行运行，以根据配置文件执行批处理搜索。
+The scripts can also be run directly from the command line to perform batch searches based on configuration files.
 
-**a. Semantic Scholar 搜索**
-
-```bash
-python3 semantic_scholar_search.py <配置文件的路径>
-```
-示例: `python3 semantic_scholar_search.py configs/semantic_scholar_algorithm.json`
-
-**b. arXiv 时间窗口搜索**
+**a. Semantic Scholar Search**
 
 ```bash
-python3 arxiv_multi_search.py [--config <配置文件路径>] [--days <天数>] [--limit <数量>]
+python3 semantic_scholar_search.py <path_to_config_file>
 ```
-示例: `python3 arxiv_multi_search.py`
+Example: `python3 semantic_scholar_search.py configs/semantic_scholar_algorithm.json`
 
-**c. 输出**
+**b. arXiv Time-Window Search**
 
-两种命令行模式的结果都将作为 `.xlsx` 文件保存在 `outputs/` 目录中。
+```bash
+python3 arxiv_multi_search.py [--config <config_file_path>] [--days <days>] [--limit <number>]
+```
+Example: `python3 arxiv_multi_search.py`
 
-## 配置
+**c. Output**
 
-该工具的行为主要由 `configs/` 目录中的JSON文件控制。
+The results of both command-line modes will be saved as `.xlsx` files in the `outputs/` directory.
 
-- **`semantic_scholar_default.json`**: 这是 Web 界面的主配置文件。
-  - 它包含一个所有已识别 **会议**（例如 "CVPR", "ICML"）的字典，并将它们映射到其全名和 `category`（类别）。
-  - 它还定义了 `default_title_exclude_keywords`，当用户未提供自己的排除列表时使用。
+## Configuration
 
-- **Semantic Scholar 批处理配置 (例如, `semantic_scholar_algorithm.json`)**: 这些文件用于 `semantic_scholar_search.py`。它们定义：
-  - `search_topics`: 搜索任务列表，每个任务都有自己的 `query_keywords`、`abstract_keywords` 和一个 `venues_to_search` 列表。
-  - `search_settings`: 批处理作业的全局设置，如 `min_year` 和 `limit_per_topic`。
+The behavior of the tool is primarily controlled by the JSON files in the `configs/` directory.
 
-- **arXiv 批处理配置 (`configs/arxiv_window.json`)**: 这是 `arxiv_multi_search.py` 的默认配置文件。它定义：
-  - `search_topics`: 搜索任务列表，每个任务都有自己的 `query_keywords` (组内AND，组间OR), `abstract_keywords` 和 `subjects` (例如, `cs.CV`)。
-  - `search_settings`: 全局设置，如 `search_window_days` (搜索窗口天数), `limit_per_topic` 和 `min_authors` (最少作者数)。 
+- **`semantic_scholar_default.json`**: This is the main configuration file for the web interface.
+  - It contains a dictionary of all recognized **conferences** (e.g., "CVPR", "ICML") and maps them to their full names and `category`.
+  - It also defines `default_title_exclude_keywords`, which are used when the user does not provide their own exclusion list.
+
+- **Semantic Scholar Batch Configurations (e.g., `semantic_scholar_algorithm.json`)**: These files are used for `semantic_scholar_search.py`. They define:
+  - `search_topics`: A list of search tasks, each with its own `query_keywords`, `abstract_keywords`, and a list of `venues_to_search`.
+  - `search_settings`: Global settings for the batch job, such as `min_year` and `limit_per_topic`.
+
+- **arXiv Batch Configuration (`configs/arxiv_window.json`)**: This is the default configuration file for `arxiv_multi_search.py`. It defines:
+  - `search_topics`: A list of search tasks, each with its own `query_keywords` (AND within a group, OR between groups), `abstract_keywords`, and `subjects` (e.g., `cs.CV`).
+  - `search_settings`: Global settings, such as `search_window_days`, `limit_per_topic`, and `min_authors`. 
