@@ -26,16 +26,57 @@
         #arxiv-results-table tr:nth-child(even) { background-color: #f8f9fa; }
         #loading { display: none; text-align: center; padding: 20px; font-size: 18px; color: #0056b3; }
         .error { color: #dc3545; }
-        #worksheet-tabs button { background-color: #e9ecef; border: 1px solid #ccc; padding: 8px 12px; cursor: pointer; margin-right: 5px; border-radius: 4px 4px 0 0; }
-        #worksheet-tabs button.active { background-color: #007bff; color: white; border-color: #007bff; }
+        #worksheet-tabs button,
+        #arxiv-worksheet-tabs button {
+            background-color: #e9ecef; 
+            border: 1px solid #ccc; 
+            padding: 10px 15px; 
+            cursor: pointer; 
+            margin-right: 8px; 
+            margin-bottom: 8px;
+            border-radius: 4px 4px 0 0;
+            font-size: 15px;
+        }
+        #worksheet-tabs button.active,
+        #arxiv-worksheet-tabs button.active { 
+            background-color: #007bff; 
+            color: white; 
+            border-color: #007bff; 
+        }
         .tab-button { font-size: 18px; padding: 10px 15px; cursor: pointer; border: 1px solid transparent; border-bottom: none; background: none; color: #555; }
         .tab-button.active { border-color: #ccc; border-bottom: 1px solid white; background-color: white; border-radius: 4px 4px 0 0; position: relative; top: 1px; color: #0056b3; font-weight: bold; }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
-        .direction-group { border: 1px solid #e0e0e0; padding: 15px; border-radius: 5px; margin-bottom: 15px; position: relative; }
+        .direction-group { border: 1px solid #e0e0e0; padding: 40px 15px 15px; border-radius: 5px; margin-bottom: 15px; position: relative; }
         .direction-group h4 { margin-top: 0; color: #333; }
-        .remove-direction-btn { position: absolute; top: 10px; right: 10px; background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; font-size: 16px; line-height: 24px; text-align: center; cursor: pointer; }
+        .remove-direction-btn { 
+            position: absolute; 
+            top: 8px; 
+            right: 8px; 
+            background: #ff4d4d; 
+            color: white; 
+            border: none; 
+            border-radius: 50%; 
+            width: 24px; 
+            height: 24px; 
+            font-size: 18px;
+            cursor: pointer; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1; /* Reset line-height for flexbox */
+            padding: 0;
+            box-sizing: border-box;
+        }
         #add-direction-btn { background-color: #28a745; margin-top: 10px; }
+        .config-btn { background-color: #6c757d; color: white; padding: 5px 10px; font-size: 12px; margin-left: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        .config-btn:hover { background-color: #5a6268; }
+
+        #export-btn, #arxiv-export-btn {
+            /* 确保按钮在“正在生成...”和“导出为 Excel”之间切换时保持大小不变 */
+            min-width: 120px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -122,15 +163,16 @@
                 <h2>搜索条件</h2>
                 <form id="arxiv-search-form">
                     <fieldset id="arxiv-search-fieldset">
-                        <div id="arxiv-directions-container">
-                            <!-- 动态搜索方向将在这里插入 -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h4>通用设置</h4>
+                            <div>
+                                <button type="button" id="import-default-arxiv-config-btn" class="config-btn">导入默认配置</button>
+                                <button type="button" id="import-arxiv-config-btn" class="config-btn">导入配置</button>
+                                <button type="button" id="save-arxiv-config-btn" class="config-btn">保存配置</button>
+                                <input type="file" id="arxiv-config-input" style="display: none;" accept=".json">
+                            </div>
                         </div>
-                        <button type="button" id="add-direction-btn">+ 添加搜索方向</button>
-                        
-                        <hr style="margin: 20px 0;">
-
-                        <h4>通用设置</h4>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                             <div>
                                 <label for="arxiv-days">搜索天数</label>
                                 <input type="number" id="arxiv-days" name="days" value="7">
@@ -141,9 +183,17 @@
                             </div>
                             <div>
                                 <label for="arxiv-min-authors">最少作者</label>
-                                <input type="number" id="arxiv-min-authors" name="min_authors" value="1">
+                                <input type="number" id="arxiv-min-authors" name="min_authors" value="2">
                             </div>
                         </div>
+
+                        <hr style="margin: 20px 0;">
+                        
+                        <div id="arxiv-directions-container">
+                            <!-- 动态搜索方向将在这里插入 -->
+                        </div>
+                        <button type="button" id="add-direction-btn">+ 添加搜索方向</button>
+                        
                     </fieldset>
                     <button type="submit" id="arxiv-submit-btn">搜索</button>
                     <button type="button" id="arxiv-cancel-btn" style="display: none; background-color: #6c757d;">取消</button>
@@ -504,6 +554,7 @@
             // --- arXiv 时间窗口搜索面板逻辑 ---
             let arxivCurrentSearchController = null;
             let arxivCurrentResults = {};
+            let arxivSearchStartTime;
 
             const arxivSearchForm = document.getElementById('arxiv-search-form');
             const arxivFieldset = document.getElementById('arxiv-search-fieldset');
@@ -530,7 +581,10 @@
                 group.dataset.id = directionId;
                 
                 group.innerHTML = `
-                    <h4>搜索方向 #${directionId}</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h4 style="margin: 0;">搜索方向</h4>
+                        <input type="text" class="arxiv-direction-name" placeholder="自定义方向名称 (可选)" style="width: 60%;">
+                    </div>
                     <div>
                         <label for="arxiv-query-keywords-${directionId}">查询关键词<br><small>(每行一组, 组内逗号隔开)</small></label>
                         <textarea id="arxiv-query-keywords-${directionId}" class="arxiv-query-keywords" placeholder="例如：&#10;LLM, Quantization" required></textarea>
@@ -548,6 +602,9 @@
                 
                 arxivDirectionsContainer.appendChild(group);
 
+                const defaultSubjects = '"cs.AI", "cs.AR", "cs.CL", "cs.CV", "cs.LG", "cs.RO"';
+                group.querySelector('.arxiv-subjects').value = defaultSubjects;
+
                 if (!isFirst) {
                     group.querySelector('.remove-direction-btn').addEventListener('click', () => {
                         group.remove();
@@ -556,6 +613,148 @@
             }
             
             addDirectionBtn.addEventListener('click', () => addArxivDirection(false));
+
+            // ---- ArXiv 配置导入/导出 ----
+
+            const importDefaultArxivConfigBtn = document.getElementById('import-default-arxiv-config-btn');
+            const importArxivConfigBtn = document.getElementById('import-arxiv-config-btn');
+            const saveArxivConfigBtn = document.getElementById('save-arxiv-config-btn');
+            const arxivConfigInput = document.getElementById('arxiv-config-input');
+
+            importDefaultArxivConfigBtn.addEventListener('click', () => {
+                fetch('configs/arxiv_window.json')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('无法加载默认配置文件: ' + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(config => {
+                        populateArxivForm(config);
+                    })
+                    .catch(error => {
+                        console.error('加载默认arXiv配置失败:', error);
+                        alert('加载默认配置失败: ' + error.message);
+                    });
+            });
+
+            importArxivConfigBtn.addEventListener('click', () => {
+                arxivConfigInput.click();
+            });
+
+            arxivConfigInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const config = JSON.parse(e.target.result);
+                        populateArxivForm(config);
+                    } catch (error) {
+                        alert('JSON 文件格式错误，无法解析: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+                // 重置输入，以便可以再次选择相同的文件
+                event.target.value = null; 
+            });
+
+            function populateArxivForm(config) {
+                // 填充通用设置
+                if (config.search_settings) {
+                    document.getElementById('arxiv-days').value = config.search_settings.search_window_days || 7;
+                    document.getElementById('arxiv-limit').value = config.search_settings.limit_per_topic || 100;
+                    document.getElementById('arxiv-min-authors').value = config.search_settings.min_authors || 1;
+                }
+
+                // 填充搜索方向
+                if (config.search_topics && Array.isArray(config.search_topics)) {
+                    arxivDirectionsContainer.innerHTML = ''; // 清空现有方向
+                    directionCounter = 0; // 重置计数器
+
+                    if (config.search_topics.length === 0) {
+                        addArxivDirection(true); // 如果没有主题，则添加一个默认的空方向
+                        return;
+                    }
+                    
+                    config.search_topics.forEach((topic, index) => {
+                        addArxivDirection(index === 0);
+                        const newGroup = arxivDirectionsContainer.lastChild;
+                        
+                        if (newGroup) {
+                            // 填充方向名称
+                            newGroup.querySelector('.arxiv-direction-name').value = topic.direction || '';
+
+                            // 填充查询关键词 (Array of Array to String)
+                            const queryKeywords = (topic.query_keywords || []).map(group => group.join(', ')).join('\n');
+                            newGroup.querySelector('.arxiv-query-keywords').value = queryKeywords;
+
+                            // 填充摘要关键词 (Array of Array to String)
+                            const abstractKeywords = (topic.abstract_keywords || []).map(group => group.join(', ')).join('\n');
+                            newGroup.querySelector('.arxiv-abstract-keywords').value = abstractKeywords;
+                            
+                            // 填充学科 (Array to String)
+                            const subjects = (topic.subjects || []).join(', ');
+                            newGroup.querySelector('.arxiv-subjects').value = subjects;
+                        }
+                    });
+                }
+            }
+
+            saveArxivConfigBtn.addEventListener('click', () => {
+                try {
+                    const config = {
+                        search_topics: [],
+                        search_settings: {}
+                    };
+
+                    // 收集通用设置
+                    config.search_settings.search_window_days = parseInt(document.getElementById('arxiv-days').value, 10);
+                    config.search_settings.limit_per_topic = parseInt(document.getElementById('arxiv-limit').value, 10);
+                    config.search_settings.min_authors = parseInt(document.getElementById('arxiv-min-authors').value, 10);
+
+                    // 收集每个搜索方向
+                    document.querySelectorAll('.direction-group').forEach((group, index) => {
+                        const name = group.querySelector('.arxiv-direction-name').value.trim();
+                        
+                        // String to Array of Array
+                        const queryKeywordsRaw = group.querySelector('.arxiv-query-keywords').value;
+                        const queryKeywords = queryKeywordsRaw.split('\n').filter(line => line.trim()).map(line => line.split(',').map(kw => kw.trim()));
+
+                        const abstractKeywordsRaw = group.querySelector('.arxiv-abstract-keywords').value;
+                        const abstractKeywords = abstractKeywordsRaw.split('\n').filter(line => line.trim()).map(line => line.split(',').map(kw => kw.trim()));
+                        
+                        // String to Array
+                        const subjectsRaw = group.querySelector('.arxiv-subjects').value;
+                        const subjects = subjectsRaw.split(',').map(s => s.trim()).filter(s => s);
+
+                        config.search_topics.push({
+                            direction: name || `方向 ${index + 1}`,
+                            query_keywords: queryKeywords,
+                            abstract_keywords: abstractKeywords,
+                            subjects: subjects
+                        });
+                    });
+
+                    // 创建并下载文件
+                    const configString = JSON.stringify(config, null, 4);
+                    const blob = new Blob([configString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'arxiv_config.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+
+                } catch (error) {
+                    alert('保存配置失败: ' + error.message);
+                }
+            });
 
             function displayArxivWorksheet(directionKey) {
                 document.querySelectorAll('#arxiv-worksheet-tabs button').forEach(btn => {
@@ -586,6 +785,7 @@
                 arxivCurrentSearchController = new AbortController();
                 const signal = arxivCurrentSearchController.signal;
 
+                arxivSearchStartTime = performance.now();
                 arxivLoadingDiv.style.display = 'block';
                 arxivResultsTable.style.display = 'none';
                 arxivErrorMessageDiv.textContent = '';
@@ -600,10 +800,12 @@
                 arxivCancelBtn.style.display = 'block';
 
                 const directions = [];
-                document.querySelectorAll('.direction-group').forEach(group => {
+                document.querySelectorAll('.direction-group').forEach((group, index) => {
                     const queryKeywords = group.querySelector('.arxiv-query-keywords').value;
+                    const directionName = group.querySelector('.arxiv-direction-name').value.trim();
                     if (queryKeywords.trim() !== "") { // 只有在查询关键词不为空时才添加
                          directions.push({
+                            name: directionName || `方向 ${index + 1}`, // 如果名称为空，则使用默认名称
                             query_keywords: queryKeywords,
                             abstract_keywords: group.querySelector('.arxiv-abstract-keywords').value,
                             subjects: group.querySelector('.arxiv-subjects').value,
@@ -642,14 +844,13 @@
                     const totalPapers = directionKeys.reduce((sum, key) => sum + groupedData[key].length, 0);
                     
                     if (totalPapers === 0) {
-                        arxivSearchSummarySpan.textContent = '没有找到符合条件的论文。';
+                        // 即使没有结果，也在finally中统一处理消息
                         return;
                     }
 
                     arxivResultsTable.style.display = 'table';
                     arxivExportBtn.style.display = 'block';
-                    arxivSearchSummarySpan.textContent = `共找到 ${totalPapers} 篇论文。`;
-
+                    
                     directionKeys.forEach(key => {
                         const button = document.createElement('button');
                         button.textContent = `${key} (${groupedData[key].length})`;
@@ -671,6 +872,19 @@
                 })
                 .finally(() => {
                     if (signal === (arxivCurrentSearchController && arxivCurrentSearchController.signal)) {
+                        
+                        if (!signal.aborted) {
+                            const endTime = performance.now();
+                            const durationInSeconds = ((endTime - arxivSearchStartTime) / 1000).toFixed(2);
+                            const paperCount = Object.values(arxivCurrentResults).reduce((sum, papers) => sum + papers.length, 0);
+
+                            if (paperCount > 0) {
+                                arxivSearchSummarySpan.textContent = `(共找到 ${paperCount} 篇, 耗时 ${durationInSeconds} 秒)`;
+                            } else if (!arxivErrorMessageDiv.textContent) { // 避免覆盖错误信息
+                                arxivSearchSummarySpan.textContent = `(没有找到符合条件的论文, 耗时 ${durationInSeconds} 秒)`;
+                            }
+                        }
+                        
                         resetArxivFormUI();
                     }
                 });

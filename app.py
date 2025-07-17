@@ -24,6 +24,12 @@ def index():
     """渲染主页面"""
     return render_template('index.html')
 
+@app.route('/configs/<path:filename>')
+def serve_config(filename):
+    """提供对 configs 目录中文件的访问，以便前端可以获取默认配置"""
+    from flask import send_from_directory
+    return send_from_directory('configs', filename)
+
 @app.route('/api/venues')
 def get_venues():
     """提供按类别分组的所有会议/期刊的列表，供前端使用"""
@@ -168,7 +174,7 @@ def handle_arxiv_search():
 
         grouped_results = {}
         for i, direction in enumerate(directions):
-            direction_name = f"方向 {i+1}"
+            direction_name = direction.get('name') or f"方向 {i+1}"
             
             # 将前端数据转换为 arxiv_multi_search 脚本期望的格式
             topic = {

@@ -15,7 +15,7 @@
         ["Vision Language Model"], 
         ["Large Language Model"]
       ],
-      "subjects": ["cs.CL", "cs.LG"]
+      "subjects": ["cs.AI", "cs.CL", "cs.LG"]
     },
     {
       "direction": "LLM Pruning",
@@ -32,7 +32,7 @@
         ["Prune"],
         ["Sparse"]
       ],
-      "subjects": ["cs.CL", "cs.LG"]
+      "subjects": ["cs.AI", "cs.CL", "cs.LG"]
     },
     {
       "direction": "LLM Compression Others",
@@ -54,7 +54,7 @@
         ["LoRA"],
         ["Distill"]
       ],
-      "subjects": ["cs.CL", "cs.LG"]
+      "subjects": ["cs.AI", "cs.CL", "cs.LG"]
     },
     {
       "direction": "3D",
@@ -74,7 +74,7 @@
         ["Neural Rendering"],
         ["Volume Rendering"]
       ],
-      "subjects": ["cs.CL", "cs.LG", "cs.CV"]
+      "subjects": ["cs.AI", "cs.CL", "cs.LG", "cs.CV"]
     },
     {
       "direction": "Architecture",

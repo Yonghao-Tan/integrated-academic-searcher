@@ -23,7 +23,6 @@
 ## 项目结构
 
 ```
-.
 ├── app.py                      # 主 Flask Web应用程序，处理API路由和前端逻辑。
 ├── semantic_scholar_search.py    # 核心搜索逻辑，与 Semantic Scholar API 交互。
 ├── arxiv_multi_search.py       # 核心搜索逻辑，与 arXiv API 交互。
