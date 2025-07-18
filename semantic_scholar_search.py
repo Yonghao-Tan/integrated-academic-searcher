@@ -72,33 +72,51 @@ def search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True
     # --- API 请求 ---
     # 对每个 "AND" 组执行一次搜索，然后合并结果
     all_results = {} # 使用字典去重
-    for group in query_keyword_groups:
-        query = " ".join(group)
-        print(f"  > 正在搜索: '{query}'")
+    
+    # 如果没有查询关键词但处于批量模式，我们可以跳过API调用，直接筛选所有返回的论文
+    if (query_keyword_groups == [''] or query_keyword_groups == [['']] or query_keyword_groups == [[""]] or query_keyword_groups == [''] or query_keyword_groups == [""] or query_keyword_groups == []) and bulk_search:
+        print("  > 未提供查询关键词，将在指定会议中进行开放式搜索...")
         try:
-            # 构建参数字典，以便动态添加 fields_of_study 和 sort
             search_params = {
-                'query': query,
+                'query': '', # 查询必须存在，但可以为空
                 'venue': api_venue_list,
-                'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId']
+                'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId'],
+                'bulk': True,
+                'publication_date_or_year': str(min_year) + ':'
             }
-            search_params['fields_of_study'] = fields_of_study
-            search_params['bulk'] = bulk_search
-            search_params['publication_date_or_year'] = str(min_year) + ':'
-            
-            # 非批量搜索时，我们期望得到更精确的结果，因此加入排序
-            if not bulk_search:
-                search_params['sort'] = 'relevance'
-
+            print(search_params)
             lazy_results = s2.search_paper(**search_params)
-            
-            # 手动迭代并加载数据
-            for i, paper in enumerate(lazy_results):
+            for paper in lazy_results:
                 if paper.paperId not in all_results:
                     all_results[paper.paperId] = paper
-
         except Exception as e:
-            print(f"    ! 搜索 '{query}' 时出错: {e}")
+            print(f"    ! 开放式搜索时出错: {e}")
+
+    else:
+        for group in query_keyword_groups:
+            query = " ".join(group)
+            if not query: continue # 跳过空的查询组
+            print(f"  > 正在搜索: '{query}'")
+            try:
+                # 构建参数字典，以便动态添加 fields_of_study 和 sort
+                search_params = {
+                    'query': query,
+                    'venue': api_venue_list,
+                    'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId']
+                }
+                search_params['fields_of_study'] = fields_of_study
+                search_params['bulk'] = bulk_search
+                search_params['publication_date_or_year'] = str(min_year) + ':'
+                
+                lazy_results = s2.search_paper(**search_params)
+                
+                # 手动迭代并加载数据
+                for i, paper in enumerate(lazy_results):
+                    if paper.paperId not in all_results:
+                        all_results[paper.paperId] = paper
+
+            except Exception as e:
+                print(f"    ! 搜索 '{query}' 时出错: {e}")
     
     print(f"[{direction}] API 请求完成，共获得 {len(all_results)} 篇独立论文，开始本地筛选...")
 
@@ -233,7 +251,7 @@ if __name__ == "__main__":
 
     papers_by_direction = {}
     total_papers_found = 0
-
+    
     for topic in config.get('search_topics', []):
         papers = run_search(topic, settings, venue_definitions)
         if papers:

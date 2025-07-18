@@ -57,5 +57,6 @@
     "import_error_message": "JSON 文件格式错误，无法解析",
     "save_error_message": "保存配置失败",
     "no_export_data_message": "没有可导出的数据。",
-    "empty_query_message": "请至少输入一组有效的查询关键词。"
+    "empty_query_message": "在不使用批量搜索时，必须填写查询关键词。",
+    "empty_arxiv_query_message": "请至少输入一组有效的查询关键词。"
 } 

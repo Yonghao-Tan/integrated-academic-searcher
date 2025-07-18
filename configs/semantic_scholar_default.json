@@ -3,7 +3,6 @@
     "review", "survey", "perspective", "retrospective", "tutorial", "forum", "workshop", "overview", "course", "invite", "usa", "analog", "transmitter", "modulator", "inverter", "convertor", "PLL", "Oscillator", "ADC", "DAC", "Transceiver", "Synthesis", "Transmission"
   ],
   "default_min_arxiv_citations": 15,
-  "default_skip_abstract_filter_for_venues": ["ISSCC", "VLSI", "CICC", "ESSERC"],
   "arXiv": { "venue": ["arxiv"], "category": "arXiv" },
   "ISSCC": { "venue": ["International Solid-State Circuits Conference"], "category": "Circuit" },
     "VLSI": { "venue": 
@@ -34,6 +33,8 @@
     "TCAD": { "venue": ["IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems"], "category": "Hardware Others" },
     "DAC": { "venue": ["Design Automation Conference"], "category": "Hardware Others" },
     "ICCAD": { "venue": ["International Conference on Computer Aided Design"], "category": "Hardware Others" },
+    "DATE": { "venue": ["Design, Automation & Test in Europe Conference & Exhibition"], "category": "Hardware Others" },
+    "ASPDAC": { "venue": ["Asia and South Pacific Design Automation Conference"], "category": "Hardware Others" },
 
     "CVPR": { "venue": ["Computer Vision and Pattern Recognition"], "category": "CV" },
     "ICCV": { "venue": ["International Conference on Computer Vision"], "category": "CV" },

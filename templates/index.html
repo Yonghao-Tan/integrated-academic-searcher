@@ -113,7 +113,7 @@
                     <fieldset id="search-fieldset">
                         <div>
                             <label for="query-keywords" data-lang="query_keywords_label" data-lang-desc="query_keywords_desc"></label>
-                            <textarea id="query-keywords" name="query_keywords" data-lang-placeholder="query_keywords_placeholder" required></textarea>
+                            <textarea id="query-keywords" name="query_keywords" data-lang-placeholder="query_keywords_placeholder"></textarea>
                         </div>
                         
                         <div>
@@ -508,6 +508,19 @@
 
             searchForm.addEventListener('submit', function(event) {
                 event.preventDefault();
+
+                // --- 新增：自定义验证逻辑 ---
+                const queryKeywords = document.getElementById('query-keywords').value.trim();
+                const isBulkSearch = document.getElementById('bulk-search').checked;
+
+                if (!isBulkSearch && !queryKeywords) {
+                    errorMessageDiv.textContent = translations['empty_query_message'] || 'Query keywords are required when not using bulk search.';
+                    // 滚动到错误消息，使其可见
+                    errorMessageDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return; // 停止执行
+                }
+
+
                 stopFlashing();
                 
                 if (currentSearchController) {
@@ -880,7 +893,7 @@
                 });
 
                 if (directions.length === 0) {
-                    arxivErrorMessageDiv.textContent = translations['empty_query_message'] || 'Please enter at least one valid set of query keywords.';
+                    arxivErrorMessageDiv.textContent = translations['empty_arxiv_query_message'] || 'Please enter at least one valid set of query keywords.';
                     resetArxivFormUI();
                     return;
                 }

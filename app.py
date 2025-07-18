@@ -116,7 +116,8 @@ def handle_search():
                 min_citations = data.get('min_arxiv_citations')
                 if min_citations:
                     settings['min_arxiv_citations'] = int(min_citations)
-
+                    
+            settings['bulk_search'] = bulk_search
             papers = semantic_scholar_run_search(topic, settings, VENUE_DEFINITIONS)
             
             # 按 category 分组
