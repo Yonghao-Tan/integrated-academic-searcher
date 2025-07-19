@@ -230,7 +230,7 @@
                 </form>
             </div>
             <div class="results-section">
-                <h2><span data-lang="search_results">Search Results</span><span id="arxiv-search-summary" style="font-weight: normal; font-size: 0.8em; color: #555;"></span></h2>
+                <h2><span data-lang="search_results">Search Results</span> <span id="arxiv-search-summary" style="font-weight: normal; font-size: 0.8em; color: #555;"></span></h2>
                  <div style="display: flex; align-items: center; justify-content: space-between;">
                     <div id="arxiv-worksheet-tabs"></div>
                     <button id="arxiv-export-btn" style="display: none;" data-lang="export_button">Export to Excel</button>
@@ -268,7 +268,8 @@
 
             async function fetchTranslations(lang) {
                 try {
-                    const response = await fetch(`/locales/${lang}.json`);
+                    // 添加时间戳作为查询参数以防止浏览器缓存旧的语言文件
+                    const response = await fetch(`/locales/${lang}.json?v=${new Date().getTime()}`);
                     if (!response.ok) {
                         throw new Error('Language file not found');
                     }
@@ -1006,11 +1007,17 @@
                             const endTime = performance.now();
                             const durationInSeconds = ((endTime - arxivSearchStartTime) / 1000).toFixed(2);
                             const paperCount = Object.values(arxivCurrentResults).reduce((sum, papers) => sum + papers.length, 0);
+                            
+                            const summaryTemplate = translations['search_summary_template'] || '(Found {count} papers in {seconds} seconds)';
+                            const summaryText = summaryTemplate
+                                .replace('{count}', paperCount)
+                                .replace('{seconds}', durationInSeconds);
 
                             if (paperCount > 0) {
-                                arxivSearchSummarySpan.textContent = `(${translations['search_summary_prefix'] || 'Found'} ${paperCount} ${translations['search_summary_suffix'] || 'papers in'} ${durationInSeconds} ${translations['search_summary_suffix_2'] || 'seconds'})`;
+                                arxivSearchSummarySpan.textContent = summaryText;
                             } else if (!arxivErrorMessageDiv.textContent) {
-                                arxivSearchSummarySpan.textContent = `(${translations['no_results_message'] || 'No matching papers found.'}, ${durationInSeconds} ${translations['search_summary_suffix_2'] || 'seconds'})`;
+                                // 即使没有结果，也显示摘要（例如“找到 0 篇论文...”）
+                                arxivSearchSummarySpan.textContent = summaryText;
                             }
                         }
                         resetArxivFormUI();
