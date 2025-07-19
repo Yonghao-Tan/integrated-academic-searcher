@@ -253,6 +253,89 @@ def run_search(topic, settings, venue_definitions):
     return search_semantic_scholar(topic, settings, venue_definitions, bulk_search=bulk_search)
 
 
+def download_papers_from_arxiv(papers_by_direction, base_download_dir):
+    """
+    尝试从 arXiv 并行下载给定论文列表的 PDF 文件到指定的基目录下。
+    返回一个成功下载的文件路径列表。
+    """
+    import arxiv
+    import re
+    from difflib import SequenceMatcher
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import math
+    import os
+
+    SIMILARITY_THRESHOLD = 0.8
+    
+    all_papers_to_process = [p for papers in papers_by_direction.values() for p in papers]
+    
+    num_papers = len(all_papers_to_process)
+    max_workers = min(max(1, math.ceil(num_papers / 4)), 8)
+
+    print(f"\n--- 开始并行下载 {num_papers} 篇论文 (使用 {max_workers} 个线程) ---")
+    if not all_papers_to_process:
+        return []
+
+    def _fetch_and_download(paper):
+        """
+        处理单篇论文的下载逻辑。
+        成功时返回文件路径，失败时返回 None。
+        """
+        client = arxiv.Client()
+        original_title = paper.get('title', '')
+        venue_name = paper.get('venue_name', 'CONF')
+        year = paper.get('year', 'YEAR')
+        category = paper.get('category', 'Others')
+        first_author = paper.get('author', '').split(',')[0].strip()
+
+        if not original_title or not first_author:
+            return None
+
+        def perform_download(arxiv_paper, success_message):
+            category_dir = os.path.join(base_download_dir, category)
+            os.makedirs(category_dir, exist_ok=True)
+            safe_title = re.sub(r'[\\/*?:"<>|]', "", original_title)
+            filename = f"[{venue_name} {year}] {safe_title}.pdf"
+            filepath = os.path.join(category_dir, filename)
+            
+            # print(f"  > {success_message} 正在下载到 '{filepath}'")
+            arxiv_paper.download_pdf(dirpath=category_dir, filename=filename)
+            return filepath
+
+        try:
+            query1 = f"{first_author} {original_title}"
+            search1 = arxiv.Search(query=query1, max_results=1, sort_by=arxiv.SortCriterion.Relevance)
+            results1 = list(client.results(search1))
+            if results1 and SequenceMatcher(None, original_title.lower(), results1[0].title.lower()).ratio() >= SIMILARITY_THRESHOLD:
+                return perform_download(results1[0], "[成功]")
+        except Exception:
+            pass
+
+        if ':' in original_title:
+            try:
+                main_title = original_title.split(':')[0].strip()
+                query2 = f"{first_author} {main_title}"
+                search2 = arxiv.Search(query=query2, max_results=1, sort_by=arxiv.SortCriterion.Relevance)
+                results2 = list(client.results(search2))
+                if results2 and SequenceMatcher(None, original_title.lower(), results2[0].title.lower()).ratio() >= SIMILARITY_THRESHOLD:
+                    return perform_download(results2[0], "[成功-主标题]")
+            except Exception:
+                pass
+        
+        return None
+
+    successful_downloads = []
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_paper = {executor.submit(_fetch_and_download, paper): paper for paper in all_papers_to_process}
+        for future in as_completed(future_to_paper):
+            result = future.result()
+            if result:
+                successful_downloads.append(result)
+    
+    print(f"\n下载完成，共成功下载 {len(successful_downloads)} / {len(all_papers_to_process)} 篇论文。")
+    return successful_downloads
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="从 Semantic Scholar 批量搜索论文并导出到 Excel。")
     parser.add_argument("config", type=str, help="要使用的JSON配置文件路径 (例如 'config_algorithm.json')。")
@@ -302,6 +385,7 @@ if __name__ == "__main__":
 
     print(f"\n搜索完成，共找到 {total_papers_found} 篇符合所有条件的论文。")
     if papers_by_direction:
+        # 导出为 Excel
         with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
             for direction, papers in sorted(papers_by_direction.items()):
                 print(f"方向 '{direction}' 找到 {len(papers)} 篇论文。")
@@ -351,6 +435,15 @@ if __name__ == "__main__":
                         
                         worksheet.column_dimensions[get_column_letter(idx)].width = max_len
                     
+        # 检查是否需要下载论文
+        if settings.get('download_papers', False):
+            # 对于本地使用，仍然使用 'downloads' 文件夹并进行清理
+            download_dir = 'downloads'
+            if os.path.exists(download_dir):
+                shutil.rmtree(download_dir)
+            os.makedirs(download_dir)
+            download_papers_from_arxiv(papers_by_direction, download_dir)
+
         print(f"\n结果已成功导出到 {output_file}")
 
     total_end_time = time.time()

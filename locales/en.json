@@ -58,5 +58,11 @@
     "save_error_message": "Failed to save config",
     "no_export_data_message": "No data to export.",
     "empty_query_message": "Query keywords are required when not using bulk search.",
-    "empty_arxiv_query_message": "Please enter at least one valid set of query keywords."
+    "empty_arxiv_query_message": "Please enter at least one valid set of query keywords.",
+    "download_button": "Download Papers",
+    "downloading_papers": "Downloading...",
+    "no_results_to_download": "No results to download.",
+    "download_started_success": "Download task started successfully in backend!",
+    "download_failed": "Download failed:",
+    "download_complete_flash": "Download Complete!"
 } 

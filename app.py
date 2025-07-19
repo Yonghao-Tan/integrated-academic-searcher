@@ -134,6 +134,7 @@ def handle_search():
                     'author': p.get('author'),
                     'year': p.get('year'),
                     'venue_name': p.get('venue_name'),
+                    'category': category, # 确保 category 字段被包含
                     'url': p.get('url'),
                     'matched_keywords': p.get('matched_abstract_keywords', ''),
                     'citations': p.get('citations', 0)
@@ -186,6 +187,54 @@ def handle_arxiv_search():
         print("arXiv 搜索时发生错误:")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/download', methods=['POST'])
+def handle_download():
+    """
+    处理前端发来的论文下载请求。
+    将下载的文件打包成 zip 并发回给用户。
+    """
+    import tempfile
+    import shutil
+    import os
+    from flask import send_file
+    from semantic_scholar_search import download_papers_from_arxiv
+
+    # 创建一个唯一的临时目录
+    temp_dir = tempfile.mkdtemp()
+    
+    try:
+        data = request.json.get('data', {})
+        if not data:
+            return jsonify({"status": "error", "message": "没有提供可下载的数据。"}), 400
+
+        # 调用下载函数，将文件下载到临时目录
+        download_papers_from_arxiv(data, temp_dir)
+        
+        # 如果临时目录为空（没有成功下载任何文件），则返回错误
+        if not os.listdir(temp_dir):
+            return jsonify({"status": "error", "message": "未成功下载任何论文。"}), 400
+            
+        # 将临时目录打包成 zip 文件
+        zip_filename = f"scholar_search_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        zip_path_base = os.path.join(tempfile.gettempdir(), zip_filename)
+        zip_path = shutil.make_archive(zip_path_base, 'zip', temp_dir)
+
+        # 发送 zip 文件给用户
+        return send_file(
+            zip_path,
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=os.path.basename(zip_path)
+        )
+
+    except Exception as e:
+        print("处理下载请求时发生错误:")
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        # 确保无论成功与否，都清理临时目录
+        shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @app.route('/api/export', methods=['POST'])

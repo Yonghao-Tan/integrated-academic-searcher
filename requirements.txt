@@ -2,4 +2,6 @@ Flask
 pandas
 arxiv
 semanticscholar
-openpyxl 
+openpyxl
+arxiv
+rapidfuzz

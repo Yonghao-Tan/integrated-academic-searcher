@@ -159,10 +159,14 @@
             </div>
             <div class="results-section">
                 <h2><span data-lang="search_results">Search Results</span> <span id="search-summary" style="font-weight: normal; font-size: 0.8em; color: #555;"></span></h2>
-                <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div id="results-controls" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                     <div id="worksheet-tabs"></div>
-                    <button id="export-btn" style="display: none;" data-lang="export_button">Export to Excel</button>
+                    <div>
+                        <button id="export-btn" class="btn btn-success me-2" data-lang-key="export_button">Export to Excel</button>
+                        <button id="download-btn" class="btn btn-primary" data-lang-key="download_button">Download Papers</button>
+                    </div>
                 </div>
+                <div id="download-status" class="mb-2"></div>
                 <div id="loading" data-lang="loading_message">Searching, please wait...</div>
                 <div id="error-message" class="error"></div>
                 <table id="results-table" style="display:none;">
@@ -382,6 +386,9 @@
             const searchSummarySpan = document.getElementById('search-summary');
             const worksheetTabs = document.getElementById('worksheet-tabs');
             const exportBtn = document.getElementById('export-btn');
+            const downloadBtn = document.getElementById('download-btn');
+            const resultsControls = document.getElementById('results-controls');
+            const downloadStatus = document.getElementById('download-status');
             const venuesContainer = document.getElementById('venues-container');
             const arxivCitationsContainer = document.getElementById('arxiv-citations-container');
 
@@ -536,8 +543,8 @@
                 searchSummarySpan.textContent = '';
                 resultsBody.innerHTML = '';
                 worksheetTabs.innerHTML = '';
-                exportBtn.style.display = 'none';
-                exportBtn.textContent = translations['export_button'] || 'Export to Excel';
+                resultsControls.style.display = 'none';
+                downloadStatus.innerHTML = '';
                 currentResults = {};
 
                 searchFieldset.disabled = true;
@@ -586,7 +593,7 @@
                     }
 
                     resultsTable.style.display = 'table';
-                    exportBtn.style.display = 'block';
+                    resultsControls.style.display = 'flex';
                     
                     categories.forEach(category => {
                         const button = document.createElement('button');
@@ -634,6 +641,49 @@
                 }
                 searchSummarySpan.textContent = '';
                 resetFormUI();
+            });
+
+            downloadBtn.addEventListener('click', function() {
+                if (Object.keys(currentResults).length === 0) {
+                    alert(translations['no_results_to_download'] || 'No results to download.');
+                    return;
+                }
+                
+                downloadBtn.disabled = true;
+                downloadStatus.innerHTML = `<div class="spinner-border spinner-border-sm text-primary" role="status"></div> <span class="ms-2">${translations['downloading_papers'] || 'Downloading...'}</span>`;
+
+                fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: currentResults })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        const header = response.headers.get('Content-Disposition');
+                        const filename = header ? header.split('filename=')[1].replace(/"/g, '') : 'download.zip';
+                        return response.blob().then(blob => ({ blob, filename }));
+                    } else {
+                        return response.json().then(err => { throw new Error(err.message || 'Download failed') });
+                    }
+                })
+                .then(({ blob, filename }) => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    downloadStatus.innerHTML = `<span class="text-success">${translations['download_started_success'] || 'Download successful!'}</span>`;
+                })
+                .catch(error => {
+                    downloadStatus.innerHTML = `<span class="text-danger">${translations['download_failed'] || 'Download failed:'} ${error.message}</span>`;
+                })
+                .finally(() => {
+                    downloadBtn.disabled = false;
+                });
             });
 
             exportBtn.addEventListener('click', function() {

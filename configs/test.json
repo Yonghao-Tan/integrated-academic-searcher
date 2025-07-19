@@ -4,7 +4,10 @@
     {
       "direction": "Hardware for AI",
       "query_keywords": [
-          [""]
+          ["NeRF"],
+          ["3DGS"],
+          ["Rendering"],
+          ["Neural Scene"]
       ],
       "abstract_keywords": [
         ["NeRF"],
@@ -12,7 +15,7 @@
         ["3DGS"],
         ["3D Gaussian Splatting"],
         ["Neural Rendering"],
-        ["Volume Rendering"]
+        ["Neural Scene"]
       ],
       "_all_venues_to_search_comment": [
         "ISSCC", "VLSI", "CICC", "ESSERC", 
@@ -28,6 +31,7 @@
   ],
   "search_settings": {
     "bulk_search": true,
+    "download_papers": true,
     "min_year": 2023,
     "limit_per_topic": 100,
     "min_arxiv_citations": 10,
