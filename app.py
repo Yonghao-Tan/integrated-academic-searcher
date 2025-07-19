@@ -44,7 +44,11 @@ def get_venues():
     
     # 按 category 分组
     grouped_venues = defaultdict(list)
-    for key, value in VENUE_DEFINITIONS.items():
+    
+    # 从新的 "venues" 对象中获取会议定义
+    venues_dict = VENUE_DEFINITIONS.get('venues', {})
+
+    for key, value in venues_dict.items():
         # 确保我们只处理有效的会议条目 (必须是字典且包含'venue'和'category'键)
         if isinstance(value, dict) and 'venue' in value and 'category' in value:
             category = value.get('category', 'Others')

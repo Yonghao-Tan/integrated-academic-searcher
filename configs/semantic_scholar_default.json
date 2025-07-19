@@ -4,40 +4,50 @@
   ],
   "default_min_arxiv_citations": 15,
   "arXiv": { "venue": ["arxiv"], "category": "arXiv" },
-  "ISSCC": { "venue": ["International Solid-State Circuits Conference"], "category": "Circuit" },
+  "venues": {
+    "ISSCC": { "venue": ["International Solid-State Circuits Conference"], "category": "Circuit" },
     "VLSI": { "venue": 
         [
-            "2025 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)",
-            "2024 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
-            "2023 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
-            "2022 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
-            "2021 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
-            "2020 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
-            "2019 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
-            "Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
-            "Symposium on VLSI Technology and Circuits", 
-            "VLSI Technology and Circuits", 
-            "Symposium on VLSI Technology"
+          "2026 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)",
+          "2025 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)",
+          "2024 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
+          "2023 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
+          "2022 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
+          "2021 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
+          "2020 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
+          "2019 IEEE Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
+          "Symposium on VLSI Technology and Circuits (VLSI Technology and Circuits)", 
+          "Symposium on VLSI Technology and Circuits", 
+          "VLSI Technology and Circuits", 
+          "Symposium on VLSI Technology"
         ], 
         "category": "Circuit" 
     },
     "CICC": { "venue": ["Custom Integrated Circuits Conference"], "category": "Circuit" },
-    "ESSERC": { "venue": ["European Solid-State Circuits Conference"], "category": "Circuit" },
+    "ESSCIRC": { "venue": [
+          "2026 IEEE European Solid-State Electronics Research Conference (ESSERC)",
+          "2025 IEEE European Solid-State Electronics Research Conference (ESSERC)",
+          "2024 IEEE European Solid-State Electronics Research Conference (ESSERC)",
+          "European Solid-State Circuits Conference"
+        ], 
+        "category": "Circuit" 
+      },
     "JSSC": { "venue": ["IEEE Journal of Solid-State Circuits", "IEEE J. Solid State Circuits"], "category": "Circuit" },
     "TCAS-I": { "venue": ["IEEE Transactions on Circuits and Systems Part 1: Regular Papers", "IEEE Trans. Circuits Syst. I Regul. Pap."], "category": "Circuit" },
     "TVLSI": { "venue": ["IEEE Transactions on Very Large Scale Integration (VLSI) Systems"], "category": "Circuit" },
+
     "ISCA": { "venue": ["International Symposium on Computer Architecture"], "category": "Architecture" },
     "MICRO": { "venue": ["Micro"], "category": "Architecture" },
     "ASPLOS": { "venue": ["International Conference on Architectural Support for Programming Languages and Operating Systems"], "category": "Architecture" },
     "HPCA": { "venue": ["International Symposium on High-Performance Computer Architecture"], "category": "Architecture" },
     "TCAD": { "venue": ["IEEE Transactions on Computer-Aided Design of Integrated Circuits and Systems"], "category": "Hardware Others" },
+    "ASPDAC": { "venue": ["Asia and South Pacific Design Automation Conference"], "category": "Hardware Others" },
     "DAC": { "venue": ["Design Automation Conference"], "category": "Hardware Others" },
     "ICCAD": { "venue": ["International Conference on Computer Aided Design"], "category": "Hardware Others" },
-    "DATE": { "venue": ["Design, Automation & Test in Europe Conference & Exhibition"], "category": "Hardware Others" },
-    "ASPDAC": { "venue": ["Asia and South Pacific Design Automation Conference"], "category": "Hardware Others" },
+    "DATE": { "venue": ["Design Automation and Test in Europe"], "category": "Hardware Others" },
 
     "CVPR": { "venue": ["Computer Vision and Pattern Recognition"], "category": "CV" },
-    "ICCV": { "venue": ["International Conference on Computer Vision"], "category": "CV" },
+    "ICCV": { "venue": ["IEEE International Conference on Computer Vision"], "category": "CV" },
     "ECCV": { "venue": ["European Conference on Computer Vision"], "category": "CV" },
     "ACL": { "venue": ["Annual Meeting of the Association for Computational Linguistics"], "category": "NLP" },
     "EMNLP": { "venue": ["Conference on Empirical Methods in Natural Language Processing"], "category": "NLP" },
@@ -45,6 +55,6 @@
     "ICML": { "venue": ["International Conference on Machine Learning"], "category": "AI" },
     "ICLR": { "venue": ["International Conference on Learning Representations"], "category": "AI" },
     "AAAI": { "venue": ["AAAI Conference on Artificial Intelligence"], "category": "AI" },
-    "JMLR": { "venue": ["Journal of Machine Learning Research", "JMLR"], "category": "AI" },
     "TPAMI": { "venue": ["IEEE Transactions on Pattern Analysis and Machine Intelligence"], "category": "CV" }
+  }
 } 

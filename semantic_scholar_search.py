@@ -15,34 +15,73 @@ def find_top_venue(venue_str, venue_definitions):
         return None, None
 
     venue_lower = venue_str.lower()
+    venue_lower = venue_lower.replace(",", "")
+
+    # 将常规会议和可能的顶层特殊会议（如 arXiv）合并到一个列表中进行迭代
+    all_venues_to_check = []
+    if 'venues' in venue_definitions and isinstance(venue_definitions['venues'], dict):
+        all_venues_to_check.extend(venue_definitions['venues'].items())
+    
+    # 检查顶层是否也有需要检查的条目，例如 arXiv
+    for key, value in venue_definitions.items():
+        if key != 'venues' and isinstance(value, dict) and 'venue' in value:
+            all_venues_to_check.append((key, value))
 
     # 在所有定义的会议中查找匹配项
-    for conf_name, conf_details in venue_definitions.items():
-        # 跳过非字典条目，例如 default_title_exclude_keywords
-        if not isinstance(conf_details, dict):
-            continue
-
+    for conf_name, conf_details in all_venues_to_check:
         for pattern in conf_details.get('venue', []):
-            if pattern.lower() in venue_lower or pattern.lower() in venue_str.lower():
+            if pattern.lower() in venue_lower:
                 return conf_name, conf_details.get('category', 'Others')
+                
     return None, None
 
-def search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True):
-    """使用Semantic Scholar进行搜索并筛选顶级论文"""
+def search_semantic_scholar(topic, settings, venue_definitions, bulk_search):
+    """
+    实际执行搜索和初步筛选的函数。
+    """
+    direction = topic.get('direction', 'Unnamed Direction')
+    print(f"[{direction}] 开始搜索...")
+
+    # --- 参数准备 ---
+    min_year = settings.get('min_year', 2020)
+
+    # 准备要搜索的会议 (venues_to_search_keys) 和 API venue 列表 (api_venue_list)
+    venues_to_search_keys = []
+    api_venue_list = []
     
-    direction = topic.get('direction', '未命名方向')
+    # 获取用户在 topic 中指定的会议，如果没有则默认为空列表
+    user_specified_venue_keys = topic.get('venues_to_search', [])
+
+    # 如果用户指定了会议
+    if user_specified_venue_keys:
+        venues_to_search_keys = user_specified_venue_keys
+        print(f"  > 用户为此搜索批次指定了 {len(venues_to_search_keys)} 个会议/期刊。")
+        for key in venues_to_search_keys:
+            # 在新的 'venues' 对象中查找常规会议
+            if 'venues' in venue_definitions and key in venue_definitions['venues']:
+                api_venue_list.extend(venue_definitions['venues'][key]['venue'])
+            else:
+                print(f"    ! 警告: 在定义中找不到指定的 venue_key '{key}'。")
+    # 如果用户未指定任何会议，则默认使用 default.json 中 'venues' 下的所有会议
+    else:
+        print("  > 用户未指定会议，将默认搜索所有在 default.json 中定义的会议。")
+        if 'venues' in venue_definitions and isinstance(venue_definitions['venues'], dict):
+            venues_to_search_keys = list(venue_definitions['venues'].keys())
+            for key in venues_to_search_keys:
+                # 确保我们只从 'venues' 对象中获取
+                if key in venue_definitions['venues']:
+                    api_venue_list.extend(venue_definitions['venues'][key]['venue'])
+        else:
+             print("    ! 警告: 'venues' 键在 default.json 中不存在或格式不正确，将不按会议筛选。")
+
     query_keyword_groups = topic.get('query_keywords', [])
     abstract_keyword_groups = topic.get('abstract_keywords', [])
-    # 从 topic 中获取要搜索的 venue key 列表
-    venues_to_search_keys = topic.get('venues_to_search', [])
     
     # 尝试从 topic 获取用户定义的跳过列表，如果没有则使用默认值
     skip_abstract_venues = topic.get('skip_abstract_filter_for_venues')
     if skip_abstract_venues is None:
         skip_abstract_venues = venue_definitions.get('default_skip_abstract_filter_for_venues', [])
     
-    min_year = settings.get('min_year')
-    limit = settings.get('limit_per_topic', 100)
     # 尝试从 settings 获取用户定义的排除词列表
     title_exclude_keywords = settings.get('title_exclude_keywords')
 
@@ -51,84 +90,116 @@ def search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True
         title_exclude_keywords = venue_definitions.get('default_title_exclude_keywords', [])
         
     fields_of_study = ["Computer Science", "Engineering"]
-    
-    # 处理 arXiv 最低引用数
-    min_arxiv_citations = settings.get('min_arxiv_citations')
-    if min_arxiv_citations is None:
-        min_arxiv_citations = venue_definitions.get('default_min_arxiv_citations', 0)
-    
-    # 根据 venues_to_search_keys 从 venue_definitions 构建API请求列表
-    api_venue_list = []
-    for key in venues_to_search_keys:
-        if key in venue_definitions and 'venue' in venue_definitions[key]:
-            api_venue_list.extend(venue_definitions[key]['venue'])
-    
+
     if not api_venue_list:
         print(f"警告：在 '{direction}' 方向中，指定的 'venues_to_search' 列表为空或无效，将不会按场馆筛选。")
-
-    s2 = SemanticScholar()
-    print(f"[{direction}] 开始搜索...")
-
-    # --- API 请求 ---
-    # 对每个 "AND" 组执行一次搜索，然后合并结果
-    all_results = {} # 使用字典去重
     
-    # 如果没有查询关键词但处于批量模式，我们可以跳过API调用，直接筛选所有返回的论文
-    if (query_keyword_groups == [''] or query_keyword_groups == [['']] or query_keyword_groups == [[""]] or query_keyword_groups == [''] or query_keyword_groups == [""] or query_keyword_groups == []) and bulk_search:
-        print("  > 未提供查询关键词，将在指定会议中进行开放式搜索...")
-        try:
-            search_params = {
-                'query': '', # 查询必须存在，但可以为空
-                'venue': api_venue_list,
-                'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId'],
-                'bulk': True,
-                'publication_date_or_year': str(min_year) + ':'
-            }
-            print(search_params)
-            lazy_results = s2.search_paper(**search_params)
-            for paper in lazy_results:
-                if paper.paperId not in all_results:
-                    all_results[paper.paperId] = paper
-        except Exception as e:
-            print(f"    ! 开放式搜索时出错: {e}")
+    s2 = SemanticScholar()
+    all_results = {}
+    SEARCH_FIELDS = ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId']
 
-    else:
+    if bulk_search:
+        print("  > 正在执行 Bulk 搜索模式...")
+
+        # 1. 准备会议循环列表 (venues_loop_list)
+        #    - 用户指定的会议将被合并进行一次搜索
+        venues_loop_list = []
+        user_specified_venues = 'venues_to_search' in topic and bool(topic['venues_to_search'])
+        
+        # 在 bulk 模式下，总是将所有目标会议合并到一次请求中
+        if user_specified_venues:
+            # print(f"  > 将对指定的 {len(venues_to_search_keys)} 个会议进行独立搜索。")
+            # for venue_key in venues_to_search_keys:
+            #     venue_info = venue_definitions.get('venues', {}).get(venue_key)
+            #     api_names = venue_info['venue'] if venue_info and 'venue' in venue_info else [venue_key]
+            #     venues_loop_list.append({'display_name': venue_key, 'api_names': api_names})
+            print(f"  > 用户指定了 {len(venues_to_search_keys)} 个会议/期刊，将在一次请求中合并搜索。")
+            venues_loop_list.append({'display_name': ', '.join(venues_to_search_keys), 'api_names': api_venue_list})
+        else:
+            print("  > 用户未指定会议，将对所有相关会议进行一次合并搜索。")
+            venues_loop_list.append({'display_name': 'All Venues', 'api_names': api_venue_list})
+
+        # 2. 准备关键词循环列表 (query_loop_groups)
+        #    - 如果用户提供了关键词, 就使用这些关键词组
+        #    - 如果未提供, 列表只有一个元素, 即一个空查询组 [['']]
+        query_keyword_groups = topic.get('query_keywords', [])
+        no_keywords_provided = not any(kw.strip() for group in query_keyword_groups for kw in group)
+        
+        query_loop_groups = query_keyword_groups if not no_keywords_provided else [['']]
+        if no_keywords_provided:
+            print("  > 未提供关键词，将进行开放式搜索。")
+        else:
+            # 将多个关键词组用 OR 合并成一个查询
+            combined_query = " | ".join([f"({' '.join(group)})" for group in query_keyword_groups if group])
+            query_loop_groups = [[combined_query]] # 创建一个新的只包含一个组合查询的列表
+            print(f"  > 已将多个查询合并为: {combined_query}")
+
+        # 3. 执行统一的嵌套循环
+        for venue_item in venues_loop_list:
+            for group in query_loop_groups:
+                query = " ".join(group)
+                venue_display = venue_item['display_name']
+
+                log_message = f"  > 正在开放式搜索 @ '{venue_display}'" if not query else f"  > 正在搜索: '{query}' @ '{venue_display}'"
+                print(log_message)
+
+                try:
+                    lazy_results = s2.search_paper(
+                        query=query,
+                        venue=venue_item['api_names'],
+                        fields=SEARCH_FIELDS,
+                        fields_of_study=fields_of_study,
+                        bulk=True,
+                        publication_date_or_year=f"{min_year}:"
+                    )
+                    for paper in lazy_results:
+                        if paper.paperId not in all_results:
+                            all_results[paper.paperId] = paper
+                            # print(paper.venue, paper.title)
+                except Exception as e:
+                    print(f"    ! 搜索 '{query}' @ '{venue_display}' 时出错: {e}")
+
+    else:  # bulk_search is False
+        print("  > 正在执行非 Bulk (高精度) 搜索模式...")
+
+        # 1. 在此模式下, 必须提供关键词
+        query_keyword_groups = topic.get('query_keywords', [])
+        if not any(kw.strip() for group in query_keyword_groups for kw in group):
+            print(f"    ! 配置错误: 非 Bulk 搜索模式 (bulk=false) 必须提供查询关键词。")
+            print(f"    ! [{direction}] 此搜索方向已被跳过。")
+            return []
+
+        # 2. 对每个关键词组进行搜索 (总是合并所有会议)
         for group in query_keyword_groups:
             query = " ".join(group)
-            if not query: continue # 跳过空的查询组
+            if not query: continue
             print(f"  > 正在搜索: '{query}'")
+            
             try:
-                # 构建参数字典，以便动态添加 fields_of_study 和 sort
-                search_params = {
-                    'query': query,
-                    'venue': api_venue_list,
-                    'fields': ['url', 'title', 'venue', 'year', 'authors', 'citationCount', 'abstract', 'paperId']
-                }
-                search_params['fields_of_study'] = fields_of_study
-                search_params['bulk'] = bulk_search
-                search_params['publication_date_or_year'] = str(min_year) + ':'
-                
-                lazy_results = s2.search_paper(**search_params)
-                
-                # 手动迭代并加载数据
-                for i, paper in enumerate(lazy_results):
+                lazy_results = s2.search_paper(
+                    query=query,
+                    venue=api_venue_list,
+                    fields=SEARCH_FIELDS,
+                    fields_of_study=fields_of_study,
+                    bulk=False,
+                    publication_date_or_year=f"{min_year}:"
+                )
+                for paper in lazy_results:
                     if paper.paperId not in all_results:
                         all_results[paper.paperId] = paper
-
             except Exception as e:
                 print(f"    ! 搜索 '{query}' 时出错: {e}")
-    
+
     print(f"[{direction}] API 请求完成，共获得 {len(all_results)} 篇独立论文，开始本地筛选...")
 
     # --- 本地筛选 ---
     top_papers = []
     for paper in all_results.values():
-        # print(paper.year, paper.venue)
         # 标题屏蔽筛选
         title_lower = paper.title.lower()
         if title_exclude_keywords and any(kw.lower() in title_lower for kw in title_exclude_keywords):
             continue
-        # print(paper.title, paper.venue)
+        
         # 年份筛选
         if min_year and (not paper.year or paper.year < min_year):
             continue
@@ -136,10 +207,6 @@ def search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True
         # 会议/期刊筛选 (现在同时返回分类)
         found_venue, venue_category_name = find_top_venue(paper.venue, venue_definitions)
         if not found_venue:
-            continue
-
-        # 如果是 arXiv 搜索，则根据引用数进一步筛选
-        if found_venue == 'arXiv' and paper.citationCount < min_arxiv_citations:
             continue
 
         # 摘要关键词筛选 (带有例外和匹配记录逻辑)
@@ -178,42 +245,12 @@ def run_search(topic, settings, venue_definitions):
     """
     可从外部调用的搜索函数。
     它接收一个搜索主题和设置，返回论文列表。
-    - 当 bulk_search=True 时，它会检查是否需要将 arXiv 的搜索与其他会议分开处理以优化API请求。
-    - 当 bulk_search=False 时，它会将所有 venue 合并进行一次精确搜索。
     """
-    venues_to_search = topic.get('venues_to_search', [])
     bulk_search = settings.get('bulk_search', True)
-    if not bulk_search:
-        # 非批量模式：一次性搜索所有指定 venue，追求更相关的结果
-        print(f"--- 在非批量模式下开始精确搜索: {', '.join(venues_to_search) if venues_to_search else '所有会议'} ---")
-        return search_semantic_scholar(topic, settings, venue_definitions, bulk_search=False)
-
-    # --- 批量模式逻辑 ---
-    normal_venues = [v for v in venues_to_search if v != 'arXiv']
-    has_arxiv = 'arXiv' in venues_to_search
-    
-    all_papers = []
-
-    # 1. 如果有普通会议，则为它们执行一次搜索
-    if normal_venues:
-        venue_topic = topic.copy()
-        venue_topic['venues_to_search'] = normal_venues
-        print(f"--- 开始批量搜索普通会议: {', '.join(normal_venues)} ---")
-        all_papers.extend(search_semantic_scholar(venue_topic, settings, venue_definitions, bulk_search=True))
-
-    # 2. 如果选择了 arXiv，则为其单独执行一次搜索
-    if has_arxiv:
-        arxiv_topic = topic.copy()
-        arxiv_topic['venues_to_search'] = ['arXiv']
-        print(f"--- 开始单独批量搜索 arXiv ---")
-        all_papers.extend(search_semantic_scholar(arxiv_topic, settings, venue_definitions, bulk_search=True))
-
-    # 3. 如果 venues_to_search 为空，则进行开放式搜索
-    if not venues_to_search:
-        print(f"--- 未指定任何会议，进行开放式批量搜索 ---")
-        all_papers.extend(search_semantic_scholar(topic, settings, venue_definitions, bulk_search=True))
-
-    return all_papers
+    venues_to_search_str = ', '.join(topic.get('venues_to_search', [])) or '所有会议'
+    mode_str = "批量" if bulk_search else "高精度"
+    print(f"--- 在 {mode_str} 模式下开始搜索: {venues_to_search_str} ---")
+    return search_semantic_scholar(topic, settings, venue_definitions, bulk_search=bulk_search)
 
 
 if __name__ == "__main__":
