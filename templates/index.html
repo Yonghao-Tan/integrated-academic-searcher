@@ -162,8 +162,8 @@
                 <div id="results-controls" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                     <div id="worksheet-tabs"></div>
                     <div>
-                        <button id="export-btn" class="btn btn-success me-2" data-lang-key="export_button">Export to Excel</button>
-                        <button id="download-btn" class="btn btn-primary" data-lang-key="download_button">Download Papers</button>
+                        <button id="export-btn" class="btn btn-success me-2" data-lang="export_button">Export to Excel</button>
+                        <button id="download-btn" class="btn btn-primary" data-lang="download_button">Download Papers</button>
                     </div>
                 </div>
                 <div id="download-status" class="mb-2"></div>
@@ -622,12 +622,22 @@
                             const paperCount = Object.values(currentResults).reduce((sum, papers) => sum + papers.length, 0);
 
                             if (paperCount > 0) {
-                                searchSummarySpan.textContent = `(${translations['search_summary_prefix'] || 'Found'} ${paperCount} ${translations['search_summary_suffix'] || 'papers in'} ${durationInSeconds} ${translations['search_summary_suffix_2'] || 'seconds'})`;
+                                const summaryTemplate = translations['search_summary_template'] || '(Found {count} papers in {seconds} seconds)';
+                                const summaryText = summaryTemplate
+                                    .replace('{count}', paperCount)
+                                    .replace('{seconds}', durationInSeconds);
+                                searchSummarySpan.textContent = summaryText;
+
                                 if (document.hidden) {
                                     startFlashing(`${translations['flash_message_prefix'] || 'Search complete! Found'} ${paperCount} ${translations['flash_message_suffix'] || 'papers'}`);
                                 }
                             } else if (!errorMessageDiv.textContent.includes(translations['error_prefix'] || 'error')) {
-                                searchSummarySpan.textContent = `(${durationInSeconds} ${translations['search_summary_suffix_2'] || 'seconds'})`;
+                                // 修正：即使没有结果，也显示耗时
+                                const summaryTemplate = translations['search_summary_template'] || '(Found {count} papers in {seconds} seconds)';
+                                const summaryText = summaryTemplate
+                                    .replace('{count}', 0)
+                                    .replace('{seconds}', durationInSeconds);
+                                searchSummarySpan.textContent = summaryText;
                             }
                         }
                         resetFormUI();
@@ -699,7 +709,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        lang: currentLanguage,
+                        lang: currentLanguage, // 修复：将当前语言传递给后端
                         data: currentResults
                     })
                 })
