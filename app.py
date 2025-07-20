@@ -198,7 +198,8 @@ def handle_download():
     import shutil
     import os
     from flask import send_file
-    from semantic_scholar_search import download_papers_from_arxiv
+    # 修复：导入重构后的通用下载函数
+    from semantic_scholar_search import download_papers
 
     # 创建一个唯一的临时目录
     temp_dir = tempfile.mkdtemp()
@@ -207,9 +208,10 @@ def handle_download():
         data = request.json.get('data', {})
         if not data:
             return jsonify({"status": "error", "message": "没有提供可下载的数据。"}), 400
-
-        # 调用下载函数，将文件下载到临时目录
-        download_papers_from_arxiv(data, temp_dir)
+        
+        # 修复：调用新的通用下载函数
+        # 新函数期望的格式是 { "group_name": [paper_list], ... }，前端正好传来这个格式
+        download_papers(data, temp_dir)
         
         # 如果临时目录为空（没有成功下载任何文件），则返回错误
         if not os.listdir(temp_dir):

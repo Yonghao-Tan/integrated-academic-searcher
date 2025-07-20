@@ -6,6 +6,9 @@ import json
 from datetime import datetime, timedelta, timezone
 from openpyxl.utils import get_column_letter
 
+# 从 semantic_scholar_search 模块导入通用的下载函数
+from semantic_scholar_search import download_papers
+
 # 用于筛选的顶级会议/期刊的映射关系
 # 格式为: (正式显示名称, [所有相关的小写搜索关键词])
 CONFERENCE_MAPPING = [
@@ -274,6 +277,19 @@ if __name__ == "__main__":
                     worksheet.column_dimensions[get_column_letter(idx)].width = max_len
 
         print(f"\n结果已成功导出到 {output_file}，每个研究方向对应一个工作表。")
+
+    # 检查是否需要下载论文
+    if settings.get('download_papers', False):
+        import os
+        import shutil
+        # 本地 CLI 模式下载
+        download_dir = 'downloads'
+        if os.path.exists(download_dir):
+            shutil.rmtree(download_dir)
+        os.makedirs(download_dir)
+
+        # papers_by_direction 的键是“方向”，值是论文列表，这正是 download_papers 需要的格式
+        download_papers(papers_by_direction, download_dir)
         
     total_end_time = time.time()
     print(f"\n脚本总运行耗时: {total_end_time - total_start_time:.2f} 秒") 

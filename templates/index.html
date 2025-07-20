@@ -94,6 +94,12 @@
             align-items: center;
             margin: 10px 0;
         }
+        /* 新增：用于确保按钮组水平排列的样式 */
+        .results-button-group {
+            display: flex;
+            gap: 10px; /* 控制按钮之间的间距 */
+            flex-shrink: 0; /* 防止按钮组在空间不足时被压缩 */
+        }
     </style>
 </head>
 <body>
@@ -161,9 +167,9 @@
                 <h2><span data-lang="search_results">Search Results</span> <span id="search-summary" style="font-weight: normal; font-size: 0.8em; color: #555;"></span></h2>
                 <div id="results-controls" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                     <div id="worksheet-tabs"></div>
-                    <div>
-                        <button id="export-btn" class="btn btn-success me-2" data-lang="export_button">Export to Excel</button>
-                        <button id="download-btn" class="btn btn-primary" data-lang="download_button">Download Papers</button>
+                    <div class="results-button-group">
+                        <button id="export-btn" data-lang="export_button">Export to Excel</button>
+                        <button id="download-btn" data-lang="download_button">Download Papers</button>
                     </div>
                 </div>
                 <div id="download-status" class="mb-2"></div>
@@ -231,10 +237,14 @@
             </div>
             <div class="results-section">
                 <h2><span data-lang="search_results">Search Results</span> <span id="arxiv-search-summary" style="font-weight: normal; font-size: 0.8em; color: #555;"></span></h2>
-                 <div style="display: flex; align-items: center; justify-content: space-between;">
+                 <div id="arxiv-results-controls" style="display: none; align-items: center; justify-content: space-between; margin-bottom: 10px;">
                     <div id="arxiv-worksheet-tabs"></div>
-                    <button id="arxiv-export-btn" style="display: none;" data-lang="export_button">Export to Excel</button>
+                    <div class="results-button-group">
+                        <button id="arxiv-export-btn" data-lang="export_button">Export to Excel</button>
+                        <button id="arxiv-download-btn" data-lang="download_button">Download Papers</button>
+                    </div>
                 </div>
+                <div id="arxiv-download-status" class="mb-2"></div>
                 <div id="arxiv-loading" style="display: none;" data-lang="loading_message">Searching, please wait...</div>
                 <div id="arxiv-error-message" class="error"></div>
                 <table id="arxiv-results-table" style="display:none;">
@@ -763,6 +773,12 @@
             const arxivWorksheetTabs = document.getElementById('arxiv-worksheet-tabs');
             const arxivExportBtn = document.getElementById('arxiv-export-btn');
 
+            // --- 新增: arXiv 下载功能相关的元素 ---
+            const arxivDownloadBtn = document.getElementById('arxiv-download-btn');
+            const arxivDownloadStatus = document.getElementById('arxiv-download-status');
+            const arxivResultsControls = document.getElementById('arxiv-results-controls');
+
+
             let directionCounter = 0;
 
             function addArxivDirection(isFirst = false) {
@@ -931,8 +947,8 @@
                 arxivSearchSummarySpan.textContent = '';
                 arxivResultsBody.innerHTML = '';
                 arxivWorksheetTabs.innerHTML = '';
-                arxivExportBtn.style.display = 'none';
-                arxivExportBtn.textContent = translations['export_button'] || 'Export to Excel';
+                arxivResultsControls.style.display = 'none'; // 隐藏控制区
+                arxivDownloadStatus.innerHTML = ''; // 清空下载状态
                 arxivCurrentResults = {};
 
                 arxivFieldset.disabled = true;
@@ -982,9 +998,12 @@
                     arxivCurrentResults = groupedData;
                     const directionKeys = Object.keys(groupedData);
                     const totalPapers = directionKeys.reduce((sum, key) => sum + groupedData[key].length, 0);
-                    if (totalPapers === 0) return;
+                    if (totalPapers === 0) {
+                        arxivErrorMessageDiv.textContent = translations['no_results_message'] || 'No matching papers found.';
+                        return; // 直接返回，finally块会处理UI状态
+                    }
                     arxivResultsTable.style.display = 'table';
-                    arxivExportBtn.style.display = 'block';
+                    arxivResultsControls.style.display = 'flex'; // 显示控制区，包括导出和下载按钮
                     directionKeys.forEach(key => {
                         const button = document.createElement('button');
                         button.textContent = `${key} (${groupedData[key].length})`;
@@ -1013,12 +1032,8 @@
                                 .replace('{count}', paperCount)
                                 .replace('{seconds}', durationInSeconds);
 
-                            if (paperCount > 0) {
-                                arxivSearchSummarySpan.textContent = summaryText;
-                            } else if (!arxivErrorMessageDiv.textContent) {
-                                // 即使没有结果，也显示摘要（例如“找到 0 篇论文...”）
-                                arxivSearchSummarySpan.textContent = summaryText;
-                            }
+                            arxivSearchSummarySpan.textContent = summaryText; // 总是显示摘要，即使是0个结果
+
                         }
                         resetArxivFormUI();
                     }
@@ -1028,6 +1043,49 @@
             arxivCancelBtn.addEventListener('click', function() {
                 if (arxivCurrentSearchController) arxivCurrentSearchController.abort();
                 resetArxivFormUI();
+            });
+
+            arxivDownloadBtn.addEventListener('click', function() {
+                if (Object.keys(arxivCurrentResults).length === 0) {
+                    alert(translations['no_results_to_download'] || 'No results to download.');
+                    return;
+                }
+                
+                arxivDownloadBtn.disabled = true;
+                arxivDownloadStatus.innerHTML = `<div class="spinner-border spinner-border-sm text-primary" role="status"></div> <span class="ms-2">${translations['downloading_papers'] || 'Downloading...'}</span>`;
+
+                fetch('/api/download', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ data: arxivCurrentResults })
+                })
+                .then(response => {
+                    if (response.ok) {
+                        const header = response.headers.get('Content-Disposition');
+                        const filename = header ? header.split('filename=')[1].replace(/"/g, '') : 'download.zip';
+                        return response.blob().then(blob => ({ blob, filename }));
+                    } else {
+                        return response.json().then(err => { throw new Error(err.message || 'Download failed') });
+                    }
+                })
+                .then(({ blob, filename }) => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    arxivDownloadStatus.innerHTML = `<span class="text-success">${translations['download_started_success'] || 'Download successful!'}</span>`;
+                })
+                .catch(error => {
+                    arxivDownloadStatus.innerHTML = `<span class="text-danger">${translations['download_failed'] || 'Download failed:'} ${error.message}</span>`;
+                })
+                .finally(() => {
+                    arxivDownloadBtn.disabled = false;
+                });
             });
 
             function resetArxivFormUI() {

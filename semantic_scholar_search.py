@@ -5,6 +5,7 @@ import json
 from datetime import datetime
 from semanticscholar.SemanticScholar import SemanticScholar
 from openpyxl.utils import get_column_letter
+import requests # 确保导入 requests 库
 
 def find_top_venue(venue_str, venue_definitions):
     """
@@ -253,9 +254,10 @@ def run_search(topic, settings, venue_definitions):
     return search_semantic_scholar(topic, settings, venue_definitions, bulk_search=bulk_search)
 
 
-def download_papers_from_arxiv(papers_by_direction, base_download_dir):
+def download_papers(grouped_papers, base_download_dir):
     """
-    尝试从 arXiv 并行下载给定论文列表的 PDF 文件到指定的基目录下。
+    尝试从 arXiv 并行下载给定论文分组字典的 PDF 文件。
+    论文会根据分组的键（如类别或搜索方向）被保存在不同的子文件夹中。
     返回一个成功下载的文件路径列表。
     """
     import arxiv
@@ -267,58 +269,90 @@ def download_papers_from_arxiv(papers_by_direction, base_download_dir):
 
     SIMILARITY_THRESHOLD = 0.8
     
-    all_papers_to_process = [p for papers in papers_by_direction.values() for p in papers]
+    # 准备一个扁平化的列表，其中每个元素都包含论文及其分组键
+    all_papers_to_process = []
+    for group_key, papers in grouped_papers.items():
+        for paper in papers:
+            all_papers_to_process.append({'group': group_key, 'paper_data': paper})
     
     num_papers = len(all_papers_to_process)
-    max_workers = min(max(1, math.ceil(num_papers / 4)), 8)
-
-    print(f"\n--- 开始并行下载 {num_papers} 篇论文 (使用 {max_workers} 个线程) ---")
-    if not all_papers_to_process:
+    if not num_papers:
+        print("\n没有需要下载的论文。")
         return []
 
-    def _fetch_and_download(paper):
+    max_workers = min(max(1, math.ceil(num_papers / 4)), 8)
+    print(f"\n--- 开始并行下载 {num_papers} 篇论文 (使用 {max_workers} 个线程) ---")
+
+    def _fetch_and_download(paper_info):
         """
         处理单篇论文的下载逻辑。
         成功时返回文件路径，失败时返回 None。
         """
-        client = arxiv.Client()
-        original_title = paper.get('title', '')
-        venue_name = paper.get('venue_name', 'CONF')
-        year = paper.get('year', 'YEAR')
-        category = paper.get('category', 'Others')
-        first_author = paper.get('author', '').split(',')[0].strip()
+        paper = paper_info['paper_data']
+        group_key = paper_info['group']
+        pdf_url = paper.get('pdf_url')
 
-        if not original_title or not first_author:
+        original_title = paper.get('title', '')
+        # 兼容两种搜索模式的返回字段
+        venue_name = paper.get('venue_name') or paper.get('会议/期刊', 'CONF')
+        year = paper.get('year') or paper.get('年份', 'YEAR')
+        first_author = (paper.get('author') or paper.get('作者', '')).split(',')[0].strip()
+
+        if not original_title:
             return None
 
-        def perform_download(arxiv_paper, success_message):
-            category_dir = os.path.join(base_download_dir, category)
-            os.makedirs(category_dir, exist_ok=True)
-            safe_title = re.sub(r'[\\/*?:"<>|]', "", original_title)
-            filename = f"[{venue_name} {year}] {safe_title}.pdf"
-            filepath = os.path.join(category_dir, filename)
-            
-            # print(f"  > {success_message} 正在下载到 '{filepath}'")
+        # --- 文件路径和名称生成 ---
+        safe_group_key = re.sub(r'[\\/*?:"<>|]', "", str(group_key))
+        category_dir = os.path.join(base_download_dir, safe_group_key)
+        os.makedirs(category_dir, exist_ok=True)
+        safe_title = re.sub(r'[\\/*?:"<>|]', "", original_title)
+        safe_title = re.sub(r'\s+', '_', safe_title)  # 再把所有空格（包括多个连续空格）换成下划线
+        filename = f"[{venue_name} {year}] {safe_title}.pdf"
+        filepath = os.path.join(category_dir, filename)
+
+        # --- 智能下载逻辑 ---
+        # 策略1: 如果有直接的 PDF URL (来自 arXiv 搜索结果)
+        if pdf_url:
+            try:
+                response = requests.get(pdf_url, stream=True, timeout=30)
+                response.raise_for_status()
+                with open(filepath, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                return filepath
+            except Exception as e:
+                # 如果直接下载失败，可以考虑打印一个警告，但目前选择静默失败并继续尝试搜索
+                # print(f"  ! 直接从 URL '{pdf_url}' 下载失败: {e}")
+                pass
+        
+        # 策略2: 如果没有直接 URL 或直接下载失败，则回退到在 arXiv 上搜索 (来自 Semantic Scholar 的结果)
+        if not first_author:
+             return None # 没有作者信息无法进行搜索
+
+        client = arxiv.Client()
+        def perform_search_and_download(arxiv_paper, success_message):
             arxiv_paper.download_pdf(dirpath=category_dir, filename=filename)
             return filepath
 
         try:
-            query1 = f"{first_author} {original_title}"
+            # 搜索策略 A：作者 + 完整标题
+            query1 = f'au:"{first_author}" AND ti:"{original_title}"'
             search1 = arxiv.Search(query=query1, max_results=1, sort_by=arxiv.SortCriterion.Relevance)
             results1 = list(client.results(search1))
             if results1 and SequenceMatcher(None, original_title.lower(), results1[0].title.lower()).ratio() >= SIMILARITY_THRESHOLD:
-                return perform_download(results1[0], "[成功]")
+                return perform_search_and_download(results1[0], "[成功]")
         except Exception:
             pass
 
+        # 搜索策略 B：如果标题包含冒号，尝试使用主标题
         if ':' in original_title:
             try:
                 main_title = original_title.split(':')[0].strip()
-                query2 = f"{first_author} {main_title}"
+                query2 = f'au:"{first_author}" AND ti:"{main_title}"'
                 search2 = arxiv.Search(query=query2, max_results=1, sort_by=arxiv.SortCriterion.Relevance)
                 results2 = list(client.results(search2))
                 if results2 and SequenceMatcher(None, original_title.lower(), results2[0].title.lower()).ratio() >= SIMILARITY_THRESHOLD:
-                    return perform_download(results2[0], "[成功-主标题]")
+                    return perform_search_and_download(results2[0], "[成功-主标题]")
             except Exception:
                 pass
         
@@ -326,7 +360,7 @@ def download_papers_from_arxiv(papers_by_direction, base_download_dir):
 
     successful_downloads = []
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_paper = {executor.submit(_fetch_and_download, paper): paper for paper in all_papers_to_process}
+        future_to_paper = {executor.submit(_fetch_and_download, paper_info): paper_info for paper_info in all_papers_to_process}
         for future in as_completed(future_to_paper):
             result = future.result()
             if result:
@@ -437,12 +471,23 @@ if __name__ == "__main__":
                     
         # 检查是否需要下载论文
         if settings.get('download_papers', False):
-            # 对于本地使用，仍然使用 'downloads' 文件夹并进行清理
+            import shutil
+            # 本地 CLI 模式下载
             download_dir = 'downloads'
             if os.path.exists(download_dir):
                 shutil.rmtree(download_dir)
             os.makedirs(download_dir)
-            download_papers_from_arxiv(papers_by_direction, download_dir)
+
+            # 准备传递给下载函数的数据结构
+            papers_grouped_by_category = {}
+            for direction, papers in papers_by_direction.items():
+                 for paper in papers:
+                    category = paper.get('category', 'Others')
+                    if category not in papers_grouped_by_category:
+                        papers_grouped_by_category[category] = []
+                    papers_grouped_by_category[category].append(paper)
+            
+            download_papers(papers_grouped_by_category, download_dir)
 
         print(f"\n结果已成功导出到 {output_file}")
 
