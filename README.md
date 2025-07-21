@@ -65,6 +65,13 @@ python3 app.py
 ```
 Open your browser and navigate to: **[http://127.0.0.1:5001/](http://127.0.0.1:5001/)**
 
+**Windows Quick Start (Alternative)**
+
+For Windows users with conda environment already set up, you can use the provided batch script:
+
+1. Edit `run_app.bat` to change the conda environment name if needed (default is `py`)
+2. Double-click `run_app.bat` to automatically activate the environment, start the server, and open the browser
+
 **c. Using the Interface**
 
 1.  **Select a Panel**: Choose between "Semantic Scholar Search" or "arXiv Time-Window Search".
