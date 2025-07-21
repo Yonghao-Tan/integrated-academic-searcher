@@ -116,3 +116,11 @@ python3 arxiv_multi_search.py [--config <配置文件路径>] [--days <天数>] 
 ```
 
 非常感谢您的支持！⭐ 
+
+## 鸣谢
+
+- 感谢 [Semantic Scholar](https://www.semanticscholar.org/) 和 [arXiv](https://arxiv.org/) 提供强大的学术搜索API。
+
+## 开发声明
+
+本项目主要利用 [Cursor](https://cursor.sh/) IDE 进行开发，其中超过90%的代码由其内置的AI Agent（基于 **Google Gemini 2.5 Pro** 模型）辅助编写完成。 

@@ -116,3 +116,11 @@ If you find this tool helpful for your research, please consider citing it:
 ```
 
 We greatly appreciate your support! ⭐ 
+
+## Acknowledgements
+
+- Thanks to [Semantic Scholar](https://www.semanticscholar.org/) and [arXiv](https://arxiv.org/) for their powerful academic search APIs.
+
+## Development Statement
+
+This project was primarily developed using the [Cursor](https://cursor.sh/) IDE. Over 90% of the code was written with the assistance of its built-in AI Agent, powered by the **Google Gemini 2.5 Pro** model. 
