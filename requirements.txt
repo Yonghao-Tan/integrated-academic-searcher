@@ -3,5 +3,5 @@ pandas
 arxiv
 semanticscholar
 openpyxl
-arxiv
 rapidfuzz
+requests
