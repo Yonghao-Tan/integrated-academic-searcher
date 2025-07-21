@@ -99,4 +99,20 @@ python3 arxiv_multi_search.py [--config <配置文件路径>] [--days <天数>] 
 
 -   **`configs/semantic_scholar_default.json`**: Web UI 的主配置文件。定义了所有受支持的会议、它们的类别以及默认的关键词排除列表。
 -   **`locales/*.json`**: 界面的语言文件。您可以编辑这些文件来更改按钮标签、消息和其他文本。
--   **批处理配置** (`configs/semantic_scholar_*.json`, `configs/arxiv_window.json`): 为命令行执行定义搜索任务。 
+-   **批处理配置** (`configs/semantic_scholar_*.json`, `configs/arxiv_window.json`): 为命令行执行定义搜索任务。
+
+## 📄 引用
+
+如果您觉得这个工具对您的研究有帮助，请考虑引用它：
+
+```bibtex
+@software{integrated_academic_searcher_2025,
+  title = {Integrated Academic Searcher: A Bilingual Academic Paper Search and Download Tool},
+  author = {Yonghao Tan},
+  year = {2025},
+  url = {https://github.com/Yonghao-Tan/integrated-academic-searcher},
+  note = {A powerful academic paper search tool integrating Semantic Scholar and arXiv with bilingual interface, advanced filtering, and batch download capabilities}
+}
+```
+
+非常感谢您的支持！⭐ 

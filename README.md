@@ -99,4 +99,20 @@ Results are saved as `.xlsx` files in the `outputs/` directory.
 
 -   **`configs/semantic_scholar_default.json`**: Main configuration for the web UI. Defines recognized conferences, their categories, and default keyword exclusion lists.
 -   **`locales/*.json`**: Language files for the UI. You can edit these to change button labels, messages, and other text.
--   **Batch Configs** (`configs/semantic_scholar_*.json`, `configs/arxiv_window.json`): Define search tasks for command-line execution. 
+-   **Batch Configs** (`configs/semantic_scholar_*.json`, `configs/arxiv_window.json`): Define search tasks for command-line execution.
+
+## 📄 Citation
+
+If you find this tool helpful for your research, please consider citing it:
+
+```bibtex
+@software{integrated_academic_searcher_2025,
+  title = {Integrated Academic Searcher: A Bilingual Academic Paper Search and Download Tool},
+  author = {Yonghao Tan},
+  year = {2025},
+  url = {https://github.com/Yonghao-Tan/integrated-academic-searcher},
+  note = {A powerful academic paper search tool integrating Semantic Scholar and arXiv with bilingual interface, advanced filtering, and batch download capabilities}
+}
+```
+
+We greatly appreciate your support! ⭐ 
