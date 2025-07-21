@@ -3,6 +3,8 @@ import json
 import traceback
 import pandas as pd
 import io
+import time
+import uuid # 新增
 from datetime import datetime
 from openpyxl.utils import get_column_letter
 
@@ -11,6 +13,11 @@ from semantic_scholar_search import run_search as semantic_scholar_run_search
 from arxiv_multi_search import run_search as arxiv_run_search
 
 app = Flask(__name__)
+
+# 一个简单的内存存储，用于临时存放下载文件
+# 在生产环境中，建议使用更健壮的方案，如 Redis 或带 TTL 的缓存
+TEMP_DOWNLOAD_FILES = {}
+
 
 # 在应用启动时加载一次会议定义
 try:
@@ -192,51 +199,101 @@ def handle_arxiv_search():
 def handle_download():
     """
     处理前端发来的论文下载请求。
-    将下载的文件打包成 zip 并发回给用户。
+    后台执行下载和打包，然后返回一个包含统计信息和下载链接的 JSON。
     """
     import tempfile
     import shutil
     import os
-    from flask import send_file
-    # 修复：导入重构后的通用下载函数
     from semantic_scholar_search import download_papers
 
-    # 创建一个唯一的临时目录
-    temp_dir = tempfile.mkdtemp()
+    # 创建一个唯一的临时目录来存放下载的 PDF
+    download_temp_dir = tempfile.mkdtemp()
     
     try:
         data = request.json.get('data', {})
         if not data:
             return jsonify({"status": "error", "message": "没有提供可下载的数据。"}), 400
         
-        # 修复：调用新的通用下载函数
-        # 新函数期望的格式是 { "group_name": [paper_list], ... }，前端正好传来这个格式
-        download_papers(data, temp_dir)
+        start_time = time.time()
+        print("--- [Download] 开始下载论文 ---")
         
-        # 如果临时目录为空（没有成功下载任何文件），则返回错误
-        if not os.listdir(temp_dir):
-            return jsonify({"status": "error", "message": "未成功下载任何论文。"}), 400
+        # 调用下载函数，现在返回 (成功数, 总数)
+        num_successful, total_papers = download_papers(data, download_temp_dir)
+        
+        end_time = time.time()
+        duration = end_time - start_time
+        print(f"--- [Download] 论文下载后台处理完成，耗时: {duration:.2f} 秒 ---")
+
+        # 如果临时目录为空（没有成功下载任何文件），则直接返回统计信息
+        if not os.listdir(download_temp_dir):
+            shutil.rmtree(download_temp_dir) # 清理空目录
+            return jsonify({
+                "status": "success", 
+                "message": "未成功下载任何论文。",
+                "successful": num_successful,
+                "total": total_papers
+            })
             
         # 将临时目录打包成 zip 文件
-        zip_filename = f"scholar_search_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        zip_path_base = os.path.join(tempfile.gettempdir(), zip_filename)
-        zip_path = shutil.make_archive(zip_path_base, 'zip', temp_dir)
+        zip_filename_base = f"scholar_search_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        zip_temp_dir = tempfile.gettempdir()
+        zip_path_base = os.path.join(zip_temp_dir, zip_filename_base)
+        zip_path = shutil.make_archive(zip_path_base, 'zip', download_temp_dir)
 
-        # 发送 zip 文件给用户
-        return send_file(
-            zip_path,
-            mimetype='application/zip',
-            as_attachment=True,
-            download_name=os.path.basename(zip_path)
-        )
+        # 生成一个唯一ID来关联这个zip文件
+        file_id = str(uuid.uuid4())
+        TEMP_DOWNLOAD_FILES[file_id] = {
+            "path": zip_path,
+            "filename": os.path.basename(zip_path)
+        }
+        
+        # 返回 JSON 响应，包含统计数据和获取文件的 file_id
+        return jsonify({
+            "status": "success",
+            "successful": num_successful,
+            "total": total_papers,
+            "file_id": file_id
+        })
 
     except Exception as e:
         print("处理下载请求时发生错误:")
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
-        # 确保无论成功与否，都清理临时目录
-        shutil.rmtree(temp_dir, ignore_errors=True)
+        # 清理存放 PDF 的临时目录
+        shutil.rmtree(download_temp_dir, ignore_errors=True)
+
+
+@app.route('/api/download_file/<file_id>')
+def download_file(file_id):
+    """
+    根据 file_id 提供 zip 文件下载，并在下载后清理文件。
+    """
+    import os
+    from flask import after_this_request
+
+    file_info = TEMP_DOWNLOAD_FILES.pop(file_id, None)
+
+    if file_info and os.path.exists(file_info['path']):
+        
+        @after_this_request
+        def cleanup(response):
+            try:
+                os.remove(file_info['path'])
+                print(f"--- [Download] 清理临时文件: {file_info['path']} ---")
+            except Exception as e:
+                print(f"--- [Download] 清理临时文件失败: {e} ---")
+            return response
+
+        return send_file(
+            file_info['path'],
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=file_info['filename']
+        )
+    else:
+        # 文件不存在或ID无效
+        return "File not found or has expired.", 404
 
 
 @app.route('/api/export', methods=['POST'])

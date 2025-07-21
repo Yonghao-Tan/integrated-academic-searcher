@@ -258,7 +258,7 @@ def download_papers(grouped_papers, base_download_dir):
     """
     尝试从 arXiv 并行下载给定论文分组字典的 PDF 文件。
     论文会根据分组的键（如类别或搜索方向）被保存在不同的子文件夹中。
-    返回一个成功下载的文件路径列表。
+    返回一个元组 (成功下载的数量, 尝试下载的总数)。
     """
     import arxiv
     import re
@@ -278,9 +278,9 @@ def download_papers(grouped_papers, base_download_dir):
     num_papers = len(all_papers_to_process)
     if not num_papers:
         print("\n没有需要下载的论文。")
-        return []
+        return 0, 0
 
-    max_workers = min(max(1, math.ceil(num_papers / 4)), 8)
+    max_workers = min(max(1, math.ceil(num_papers / 4)), 16)
     print(f"\n--- 开始并行下载 {num_papers} 篇论文 (使用 {max_workers} 个线程) ---")
 
     def _fetch_and_download(paper_info):
@@ -314,7 +314,7 @@ def download_papers(grouped_papers, base_download_dir):
         # 策略1: 如果有直接的 PDF URL (来自 arXiv 搜索结果)
         if pdf_url:
             try:
-                response = requests.get(pdf_url, stream=True, timeout=30)
+                response = requests.get(pdf_url, stream=True, timeout=10)
                 response.raise_for_status()
                 with open(filepath, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
@@ -322,7 +322,7 @@ def download_papers(grouped_papers, base_download_dir):
                 return filepath
             except Exception as e:
                 # 如果直接下载失败，可以考虑打印一个警告，但目前选择静默失败并继续尝试搜索
-                # print(f"  ! 直接从 URL '{pdf_url}' 下载失败: {e}")
+                print(f"  ! 直接从 URL '{pdf_url}' 下载失败: {e}")
                 pass
         
         # 策略2: 如果没有直接 URL 或直接下载失败，则回退到在 arXiv 上搜索 (来自 Semantic Scholar 的结果)
@@ -366,8 +366,10 @@ def download_papers(grouped_papers, base_download_dir):
             if result:
                 successful_downloads.append(result)
     
-    print(f"\n下载完成，共成功下载 {len(successful_downloads)} / {len(all_papers_to_process)} 篇论文。")
-    return successful_downloads
+    num_successful = len(successful_downloads)
+    total_papers = len(all_papers_to_process)
+    print(f"\n下载完成，共成功下载 {num_successful} / {total_papers} 篇论文。")
+    return num_successful, total_papers
 
 
 if __name__ == "__main__":

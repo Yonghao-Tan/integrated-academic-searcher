@@ -23,8 +23,9 @@
         }
         input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         textarea { height: 80px; resize: vertical; }
-        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
+        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; box-sizing: border-box; }
         button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; opacity: 0.65; cursor: not-allowed; }
         #results-table, #arxiv-results-table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
         #results-table th, #results-table td,
         #arxiv-results-table th, #arxiv-results-table td { border: 1px solid #ddd; padding: 10px; text-align: left; word-wrap: break-word; }
@@ -83,7 +84,7 @@
         }
         #lang-switcher { margin: 10px; font-size: 14px; padding: 5px 10px; cursor: pointer; }
         
-        /* 增大“批量搜索”复选框的样式 */
+        /* 增大"批量搜索"复选框的样式 */
         #bulk-search {
             transform: scale(1.4);
             margin-right: 8px;
@@ -170,6 +171,7 @@
                     <div class="results-button-group">
                         <button id="export-btn" data-lang="export_button">Export to Excel</button>
                         <button id="download-btn" data-lang="download_button">Download Papers</button>
+                        <button id="cancel-download-btn" style="display: none; background-color: #6c757d;" data-lang="cancel_button">Cancel</button>
                     </div>
                 </div>
                 <div id="download-status" class="mb-2"></div>
@@ -242,6 +244,7 @@
                     <div class="results-button-group">
                         <button id="arxiv-export-btn" data-lang="export_button">Export to Excel</button>
                         <button id="arxiv-download-btn" data-lang="download_button">Download Papers</button>
+                        <button id="cancel-arxiv-download-btn" style="display: none; background-color: #6c757d;" data-lang="cancel_button">Cancel</button>
                     </div>
                 </div>
                 <div id="arxiv-download-status" class="mb-2"></div>
@@ -332,15 +335,62 @@
                         element.placeholder = translations[key].replace(/\\n/g, '\n');
                     }
                 });
+            }
+
+            function setupDynamicWidths() {
+                const t = key => translations[key] || '';
                 
-                // Set a fixed min-width on export buttons to prevent size changes
-                [exportBtn, arxivExportBtn].forEach(btn => {
-                    // Temporarily set to the longest text to measure
-                    const originalText = btn.textContent;
-                    btn.textContent = translations['export_button'] || "Export to Excel";
-                    const width = btn.getBoundingClientRect().width;
-                    btn.style.minWidth = `${width + 2}px`; // Add a small buffer
-                    btn.textContent = originalText; // Restore original text
+                const calculateMaxWidth = (button, textOptions) => {
+                    if (!button) return 0;
+                    let maxWidth = 0;
+
+                    // Clone the button to get its styles without affecting the original
+                    const clone = button.cloneNode(true);
+                    
+                    // Style it to be off-screen and invisible but still take up layout space
+                    clone.style.position = 'absolute';
+                    clone.style.left = '-9999px';
+                    clone.style.visibility = 'hidden';
+                    clone.style.display = 'inline-block';
+                    clone.style.minWidth = 'auto'; // Reset min-width for accurate measurement
+
+                    document.body.appendChild(clone);
+
+                    textOptions.forEach(text => {
+                        if (text) {
+                            clone.textContent = text;
+                            // 使用 getBoundingClientRect().width 来获取包含 padding 的最终渲染宽度
+                            maxWidth = Math.max(maxWidth, clone.getBoundingClientRect().width);
+                        }
+                    });
+
+                    document.body.removeChild(clone);
+
+                    return Math.ceil(maxWidth); // 向上取整以避免小数像素问题
+                };
+
+                // --- Export Buttons ---
+                const exportBtn = document.getElementById('export-btn');
+                const arxivExportBtn = document.getElementById('arxiv-export-btn');
+                const exportTexts = [t('export_button'), t('exporting_button')];
+                const exportMaxWidth = calculateMaxWidth(exportBtn, exportTexts);
+                
+                if (exportBtn) exportBtn.style.minWidth = `${exportMaxWidth}px`;
+                if (arxivExportBtn) arxivExportBtn.style.minWidth = `${exportMaxWidth}px`;
+
+                // --- Download/Cancel Buttons ---
+                const downloadBtn = document.getElementById('download-btn');
+                const cancelBtn = document.getElementById('cancel-download-btn');
+                const arxivDownloadBtn = document.getElementById('arxiv-download-btn');
+                const arxivCancelBtn = document.getElementById('cancel-arxiv-download-btn');
+                
+                const downloadTexts = [t('download_button'), t('cancel_button')];
+                // Use one of the download buttons as a reference for measurement
+                const downloadMaxWidth = calculateMaxWidth(downloadBtn || arxivDownloadBtn, downloadTexts);
+
+                const allDownloadBtns = [downloadBtn, cancelBtn, arxivDownloadBtn, arxivCancelBtn];
+                allDownloadBtns.forEach(btn => {
+                    if (btn) btn.style.minWidth = `${downloadMaxWidth}px`;
                 });
             }
 
@@ -349,6 +399,7 @@
                 
                 translations = await fetchTranslations(lang);
                 applyTranslations();
+                setupDynamicWidths(); // Recalculate widths on language change
                 currentLanguage = lang;
                 document.documentElement.lang = lang; // Update the lang attribute of the <html> tag
                 localStorage.setItem('preferredLanguage', lang);
@@ -400,6 +451,7 @@
             const downloadBtn = document.getElementById('download-btn');
             const resultsControls = document.getElementById('results-controls');
             const downloadStatus = document.getElementById('download-status');
+            const cancelDownloadBtn = document.getElementById('cancel-download-btn');
             const venuesContainer = document.getElementById('venues-container');
             const arxivCitationsContainer = document.getElementById('arxiv-citations-container');
 
@@ -664,47 +716,92 @@
                 resetFormUI();
             });
 
-            downloadBtn.addEventListener('click', function() {
-                if (Object.keys(currentResults).length === 0) {
+            let downloadController = null;
+
+            function handleDownload(data, downloadBtn, cancelBtn, statusDiv, fieldset, searchBtn, isSemantic) {
+                if (!data || Object.keys(data).length === 0) {
                     alert(translations['no_results_to_download'] || 'No results to download.');
                     return;
                 }
-                
-                downloadBtn.disabled = true;
-                downloadStatus.innerHTML = `<div class="spinner-border spinner-border-sm text-primary" role="status"></div> <span class="ms-2">${translations['downloading_papers'] || 'Downloading...'}</span>`;
+
+                if (downloadController) return; // Prevent concurrent downloads
+
+                downloadController = new AbortController();
+                const signal = downloadController.signal;
+
+                downloadBtn.style.display = 'none';
+                cancelBtn.style.display = 'block';
+                fieldset.disabled = true; // 禁用表单
+                searchBtn.disabled = true; // 禁用搜索按钮
+                statusDiv.className = 'mb-2'; // 重置样式
+
+                let downloadStartTime = performance.now();
+                let timerInterval = setInterval(() => {
+                    const elapsedTime = ((performance.now() - downloadStartTime) / 1000).toFixed(1);
+                    const template = translations['downloading_papers_template'] || 'Downloading... ({seconds}s)';
+                    const timerText = template.replace('{seconds}', elapsedTime);
+                    
+                    if (isSemantic) {
+                        const disclaimer = translations['download_disclaimer'] || '';
+                        statusDiv.innerHTML = `${timerText} <small class="text-muted" style="margin-left: 10px;">${disclaimer}</small>`;
+                    } else {
+                        statusDiv.textContent = timerText;
+                    }
+                }, 200);
 
                 fetch('/api/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ data: currentResults })
+                    body: JSON.stringify({ data: data }),
+                    signal: signal
                 })
                 .then(response => {
-                    if (response.ok) {
-                        const header = response.headers.get('Content-Disposition');
-                        const filename = header ? header.split('filename=')[1].replace(/"/g, '') : 'download.zip';
-                        return response.blob().then(blob => ({ blob, filename }));
+                    if (!response.ok) {
+                        return response.json().then(err => { throw new Error(err.message || 'Download preparation failed') });
+                    }
+                    return response.json();
+                })
+                .then(result => {
+                    if (result.status === 'success') {
+                        const template = translations['download_summary_template'] || 'Successfully downloaded {successful}/{total} papers.';
+                        const message = template.replace('{successful}', result.successful).replace('{total}', result.total);
+                        statusDiv.textContent = message;
+                        statusDiv.classList.add('text-success');
+
+                        if (result.file_id) {
+                            window.location.href = `/api/download_file/${result.file_id}`;
+                        }
                     } else {
-                        return response.json().then(err => { throw new Error(err.message || 'Download failed') });
+                        throw new Error(result.message || 'An unknown error occurred during download.');
                     }
                 })
-                .then(({ blob, filename }) => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    downloadStatus.innerHTML = `<span class="text-success">${translations['download_started_success'] || 'Download successful!'}</span>`;
-                })
                 .catch(error => {
-                    downloadStatus.innerHTML = `<span class="text-danger">${translations['download_failed'] || 'Download failed:'} ${error.message}</span>`;
+                    if (error.name === 'AbortError') {
+                        statusDiv.textContent = translations['download_cancelled_message'] || 'Download cancelled.';
+                        statusDiv.classList.add('text-warning');
+                    } else {
+                        statusDiv.textContent = `${translations['error_prefix'] || 'Error'}: ${error.message}`;
+                        statusDiv.classList.add('text-danger');
+                    }
                 })
                 .finally(() => {
-                    downloadBtn.disabled = false;
+                    clearInterval(timerInterval);
+                    downloadBtn.style.display = 'block';
+                    cancelBtn.style.display = 'none';
+                    fieldset.disabled = false; // 重新启用表单
+                    searchBtn.disabled = false; // 重新启用搜索按钮
+                    downloadController = null;
                 });
+            }
+
+            downloadBtn.addEventListener('click', function() {
+                handleDownload(currentResults, downloadBtn, cancelDownloadBtn, downloadStatus, searchFieldset, submitBtn, true);
+            });
+            
+            cancelDownloadBtn.addEventListener('click', function() {
+                if (downloadController) {
+                    downloadController.abort();
+                }
             });
 
             exportBtn.addEventListener('click', function() {
@@ -777,7 +874,19 @@
             const arxivDownloadBtn = document.getElementById('arxiv-download-btn');
             const arxivDownloadStatus = document.getElementById('arxiv-download-status');
             const arxivResultsControls = document.getElementById('arxiv-results-controls');
+            const cancelArxivDownloadBtn = document.getElementById('cancel-arxiv-download-btn');
 
+
+            // --- 新增: arXiv 下载功能 ---
+            arxivDownloadBtn.addEventListener('click', function() {
+                handleDownload(arxivCurrentResults, arxivDownloadBtn, cancelArxivDownloadBtn, arxivDownloadStatus, arxivFieldset, arxivSubmitBtn, false);
+            });
+
+            cancelArxivDownloadBtn.addEventListener('click', function() {
+                if (downloadController) {
+                    downloadController.abort();
+                }
+            });
 
             let directionCounter = 0;
 
@@ -1043,49 +1152,6 @@
             arxivCancelBtn.addEventListener('click', function() {
                 if (arxivCurrentSearchController) arxivCurrentSearchController.abort();
                 resetArxivFormUI();
-            });
-
-            arxivDownloadBtn.addEventListener('click', function() {
-                if (Object.keys(arxivCurrentResults).length === 0) {
-                    alert(translations['no_results_to_download'] || 'No results to download.');
-                    return;
-                }
-                
-                arxivDownloadBtn.disabled = true;
-                arxivDownloadStatus.innerHTML = `<div class="spinner-border spinner-border-sm text-primary" role="status"></div> <span class="ms-2">${translations['downloading_papers'] || 'Downloading...'}</span>`;
-
-                fetch('/api/download', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ data: arxivCurrentResults })
-                })
-                .then(response => {
-                    if (response.ok) {
-                        const header = response.headers.get('Content-Disposition');
-                        const filename = header ? header.split('filename=')[1].replace(/"/g, '') : 'download.zip';
-                        return response.blob().then(blob => ({ blob, filename }));
-                    } else {
-                        return response.json().then(err => { throw new Error(err.message || 'Download failed') });
-                    }
-                })
-                .then(({ blob, filename }) => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = filename;
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                    arxivDownloadStatus.innerHTML = `<span class="text-success">${translations['download_started_success'] || 'Download successful!'}</span>`;
-                })
-                .catch(error => {
-                    arxivDownloadStatus.innerHTML = `<span class="text-danger">${translations['download_failed'] || 'Download failed:'} ${error.message}</span>`;
-                })
-                .finally(() => {
-                    arxivDownloadBtn.disabled = false;
-                });
             });
 
             function resetArxivFormUI() {
