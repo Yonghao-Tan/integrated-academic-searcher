@@ -28,6 +28,13 @@ This is a powerful academic paper search tool that integrates search capabilitie
     - Browser tab blinks to notify you when a long search is complete.
     - Both Web UI and Command-Line modes are supported.
     - Highly configurable via simple JSON files.
+- **Download Papers**: After searching, click the "Download Papers" button. This feature attempts to find and download the papers from arXiv. The final output is a ZIP file containing the downloaded PDFs and an Excel report (`download_report.xlsx`) that lists all papers and marks their download status (✓ for success, ✗ for failure).
+
+## Contributing
+
+We welcome any contributions to improve this tool! Feel free to fork the repository, make your changes, and submit a pull request.
+
+If you encounter any bugs or have suggestions for new features, please don't hesitate to open an issue on our GitHub repository. Your feedback is highly valuable.
 
 ## 📂 Project Structure
 

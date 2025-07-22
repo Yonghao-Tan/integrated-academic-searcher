@@ -718,7 +718,7 @@
 
             let downloadController = null;
 
-            function handleDownload(data, downloadBtn, cancelBtn, statusDiv, fieldset, searchBtn, isSemantic) {
+            function handleDownload(data, downloadBtn, cancelBtn, statusDiv, fieldset, searchBtn, isSemantic, isArxiv) {
                 if (!data || Object.keys(data).length === 0) {
                     alert(translations['no_results_to_download'] || 'No results to download.');
                     return;
@@ -752,7 +752,11 @@
                 fetch('/api/download', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ data: data }),
+                    body: JSON.stringify({ 
+                        data: data,
+                        lang: currentLanguage,
+                        is_arxiv: isArxiv
+                    }),
                     signal: signal
                 })
                 .then(response => {
@@ -795,7 +799,7 @@
             }
 
             downloadBtn.addEventListener('click', function() {
-                handleDownload(currentResults, downloadBtn, cancelDownloadBtn, downloadStatus, searchFieldset, submitBtn, true);
+                handleDownload(currentResults, downloadBtn, cancelDownloadBtn, downloadStatus, searchFieldset, submitBtn, true, false);
             });
             
             cancelDownloadBtn.addEventListener('click', function() {
@@ -879,7 +883,7 @@
 
             // --- 新增: arXiv 下载功能 ---
             arxivDownloadBtn.addEventListener('click', function() {
-                handleDownload(arxivCurrentResults, arxivDownloadBtn, cancelArxivDownloadBtn, arxivDownloadStatus, arxivFieldset, arxivSubmitBtn, false);
+                handleDownload(arxivCurrentResults, arxivDownloadBtn, cancelArxivDownloadBtn, arxivDownloadStatus, arxivFieldset, arxivSubmitBtn, false, true);
             });
 
             cancelArxivDownloadBtn.addEventListener('click', function() {

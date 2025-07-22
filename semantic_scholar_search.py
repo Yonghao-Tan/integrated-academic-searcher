@@ -254,11 +254,24 @@ def run_search(topic, settings, venue_definitions):
     return search_semantic_scholar(topic, settings, venue_definitions, bulk_search=bulk_search)
 
 
+def _generate_safe_filename(paper):
+    """根据论文元数据生成一个安全的文件名 (不含路径和扩展名)"""
+    import re
+    original_title = paper.get('title', '')
+    # 兼容两种搜索模式的返回字段
+    venue_name = paper.get('venue_name') or paper.get('会议/期刊', 'CONF')
+    year = paper.get('year') or paper.get('年份', 'YEAR')
+
+    safe_title = re.sub(r'[\\/*?:"<>|]', "", original_title)
+    safe_title = re.sub(r'\s+', '_', safe_title)
+    return f"[{venue_name} {year}] {safe_title}"
+
+
 def download_papers(grouped_papers, base_download_dir):
     """
     尝试从 arXiv 并行下载给定论文分组字典的 PDF 文件。
     论文会根据分组的键（如类别或搜索方向）被保存在不同的子文件夹中。
-    返回一个元组 (成功下载的数量, 尝试下载的总数)。
+    返回一个成功下载的文件名列表 (不含路径)。
     """
     import arxiv
     import re
@@ -278,7 +291,7 @@ def download_papers(grouped_papers, base_download_dir):
     num_papers = len(all_papers_to_process)
     if not num_papers:
         print("\n没有需要下载的论文。")
-        return 0, 0
+        return []
 
     max_workers = min(max(1, math.ceil(num_papers / 4)), 16)
     print(f"\n--- 开始并行下载 {num_papers} 篇论文 (使用 {max_workers} 个线程) ---")
@@ -286,16 +299,13 @@ def download_papers(grouped_papers, base_download_dir):
     def _fetch_and_download(paper_info):
         """
         处理单篇论文的下载逻辑。
-        成功时返回文件路径，失败时返回 None。
+        成功时返回最终的文件名(不含路径)，失败时返回 None。
         """
         paper = paper_info['paper_data']
         group_key = paper_info['group']
         pdf_url = paper.get('pdf_url')
 
         original_title = paper.get('title', '')
-        # 兼容两种搜索模式的返回字段
-        venue_name = paper.get('venue_name') or paper.get('会议/期刊', 'CONF')
-        year = paper.get('year') or paper.get('年份', 'YEAR')
         first_author = (paper.get('author') or paper.get('作者', '')).split(',')[0].strip()
 
         if not original_title:
@@ -305,10 +315,11 @@ def download_papers(grouped_papers, base_download_dir):
         safe_group_key = re.sub(r'[\\/*?:"<>|]', "", str(group_key))
         category_dir = os.path.join(base_download_dir, safe_group_key)
         os.makedirs(category_dir, exist_ok=True)
-        safe_title = re.sub(r'[\\/*?:"<>|]', "", original_title)
-        safe_title = re.sub(r'\s+', '_', safe_title)  # 再把所有空格（包括多个连续空格）换成下划线
-        filename = f"[{venue_name} {year}] {safe_title}.pdf"
-        filepath = os.path.join(category_dir, filename)
+        
+        # 使用新的辅助函数生成基础文件名
+        base_filename = _generate_safe_filename(paper)
+        full_filename = f"{base_filename}.pdf"
+        filepath = os.path.join(category_dir, full_filename)
 
         # --- 智能下载逻辑 ---
         # 策略1: 如果有直接的 PDF URL (来自 arXiv 搜索结果)
@@ -319,7 +330,7 @@ def download_papers(grouped_papers, base_download_dir):
                 with open(filepath, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
-                return filepath
+                return full_filename
             except Exception as e:
                 # 如果直接下载失败，可以考虑打印一个警告，但目前选择静默失败并继续尝试搜索
                 print(f"  ! 直接从 URL '{pdf_url}' 下载失败: {e}")
@@ -331,8 +342,8 @@ def download_papers(grouped_papers, base_download_dir):
 
         client = arxiv.Client()
         def perform_search_and_download(arxiv_paper, success_message):
-            arxiv_paper.download_pdf(dirpath=category_dir, filename=filename)
-            return filepath
+            arxiv_paper.download_pdf(dirpath=category_dir, filename=full_filename)
+            return full_filename
 
         try:
             # 搜索策略 A：作者 + 完整标题
@@ -366,10 +377,8 @@ def download_papers(grouped_papers, base_download_dir):
             if result:
                 successful_downloads.append(result)
     
-    num_successful = len(successful_downloads)
-    total_papers = len(all_papers_to_process)
-    print(f"\n下载完成，共成功下载 {num_successful} / {total_papers} 篇论文。")
-    return num_successful, total_papers
+    print(f"\n下载完成，共成功下载 {len(successful_downloads)} / {len(all_papers_to_process)} 篇论文。")
+    return successful_downloads
 
 
 if __name__ == "__main__":

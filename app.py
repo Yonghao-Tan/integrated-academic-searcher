@@ -4,18 +4,17 @@ import traceback
 import pandas as pd
 import io
 import time
-import uuid # 新增
+import uuid
 from datetime import datetime
 from openpyxl.utils import get_column_letter
 
 # 导入现有的搜索脚本逻辑
-from semantic_scholar_search import run_search as semantic_scholar_run_search
+from semantic_scholar_search import run_search as semantic_scholar_run_search, _generate_safe_filename
 from arxiv_multi_search import run_search as arxiv_run_search
 
 app = Flask(__name__)
 
 # 一个简单的内存存储，用于临时存放下载文件
-# 在生产环境中，建议使用更健壮的方案，如 Redis 或带 TTL 的缓存
 TEMP_DOWNLOAD_FILES = {}
 
 
@@ -26,6 +25,86 @@ try:
 except Exception as e:
     print(f"警告：无法加载会议定义文件 'configs/semantic_scholar_default.json'。错误: {e}")
     VENUE_DEFINITIONS = {}
+
+# --- 辅助函数 ---
+
+def _create_excel_report(data, lang, downloaded_files=None, is_arxiv=False):
+    """
+    通用函数，用于创建包含论文数据的Excel报告。
+    可以根据提供的 downloaded_files 列表添加“已下载”状态列。
+    """
+    downloaded_files = downloaded_files or []
+    
+    headers = {
+        'zh': {
+            'downloaded': '已下载',
+            'venue_name': '会议/期刊', 'year': '年份', 'title': '文章标题',
+            'matched_keywords': '匹配的摘要词', 'author': '作者', 'citations': '引用数', 'url': 'URL',
+            'updated': '更新日期', 'published': '发表日期'
+        },
+        'en': {
+            'downloaded': 'Downloaded',
+            'venue_name': 'Conference/Journal', 'year': 'Year', 'title': 'Title',
+            'matched_keywords': 'Matched Abstract Keywords', 'author': 'Authors', 'citations': 'Citations', 'url': 'URL',
+            'updated': 'Updated', 'published': 'Published'
+        }
+    }
+    current_headers = headers.get(lang, headers['zh'])
+
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        for group_name, papers in data.items():
+            if not papers:
+                continue
+
+            df = pd.DataFrame(papers)
+            
+            # --- 新增：准备“已下载”列 ---
+            df['download_status'] = df.apply(
+                lambda row: '✓' if f"{_generate_safe_filename(row)}.pdf" in downloaded_files else '✗',
+                axis=1
+            )
+
+            # 根据模式（Semantic/Arxiv）构建要输出的 DataFrame
+            if is_arxiv:
+                df_for_excel = pd.DataFrame({
+                    current_headers['downloaded']: df['download_status'],
+                    current_headers['updated']: df['updated'],
+                    current_headers['published']: df['published'],
+                    current_headers['title']: df['title'],
+                    current_headers['matched_keywords']: df['matched_keywords'],
+                    current_headers['author']: df['author'],
+                    current_headers['url']: df['url']
+                })
+            else: # Semantic Scholar
+                df_for_excel = pd.DataFrame({
+                    current_headers['downloaded']: df['download_status'],
+                    current_headers['venue_name']: df['venue_name'],
+                    current_headers['year']: df['year'],
+                    current_headers['title']: df['title'],
+                    current_headers['matched_keywords']: df['matched_keywords'],
+                    current_headers['author']: df['author'],
+                    current_headers['citations']: df['citations'],
+                    current_headers['url']: df['url']
+                })
+            
+            safe_name = "".join(c for c in group_name if c.isalnum() or c in (' ', '_')).rstrip()
+            sheet_name = safe_name[:31]
+
+            df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False)
+
+            worksheet = writer.sheets[sheet_name]
+            for idx, col in enumerate(df_for_excel, 1):
+                series = df_for_excel[col]
+                try:
+                    max_len = max(series.astype(str).map(len).max(), len(str(series.name))) + 4
+                except (ValueError, TypeError):
+                    max_len = len(str(series.name)) + 4
+                worksheet.column_dimensions[get_column_letter(idx)].width = max_len
+    
+    output.seek(0)
+    return output
+
 
 @app.route('/')
 def index():
@@ -199,55 +278,65 @@ def handle_arxiv_search():
 def handle_download():
     """
     处理前端发来的论文下载请求。
-    后台执行下载和打包，然后返回一个包含统计信息和下载链接的 JSON。
+    后台执行下载，生成一份带下载状态的Excel清单，然后将所有文件打包成ZIP。
     """
     import tempfile
     import shutil
     import os
     from semantic_scholar_search import download_papers
 
-    # 创建一个唯一的临时目录来存放下载的 PDF
     download_temp_dir = tempfile.mkdtemp()
     
     try:
-        data = request.json.get('data', {})
-        if not data:
+        request_data = request.json
+        papers_data = request_data.get('data', {})
+        lang = request_data.get('lang', 'zh')
+        is_arxiv = request_data.get('is_arxiv', False)
+
+        if not papers_data:
             return jsonify({"status": "error", "message": "没有提供可下载的数据。"}), 400
         
         start_time = time.time()
         print("--- [Download] 开始下载论文 ---")
         
-        # 调用下载函数，现在返回 (成功数, 总数)
-        num_successful, total_papers = download_papers(data, download_temp_dir)
-        
+        # 1. 下载论文，并获取成功下载的文件名列表
+        successful_filenames = download_papers(papers_data, download_temp_dir)
+        num_successful = len(successful_filenames)
+        total_papers = sum(len(papers) for papers in papers_data.values())
+
         end_time = time.time()
         duration = end_time - start_time
         print(f"--- [Download] 论文下载后台处理完成，耗时: {duration:.2f} 秒 ---")
+        
+        # 2. 生成包含下载状态的 Excel 报告
+        excel_report_io = _create_excel_report(papers_data, lang, successful_filenames, is_arxiv)
+        excel_filename = "download_report.xlsx"
+        with open(os.path.join(download_temp_dir, excel_filename), 'wb') as f:
+            f.write(excel_report_io.getvalue())
+        print(f"--- [Download] 已生成带状态的报告 '{excel_filename}' ---")
 
-        # 如果临时目录为空（没有成功下载任何文件），则直接返回统计信息
+        # 3. 如果目录为空（可能只生成了报告但没下载PDF），也继续打包
         if not os.listdir(download_temp_dir):
-            shutil.rmtree(download_temp_dir) # 清理空目录
+            shutil.rmtree(download_temp_dir)
             return jsonify({
                 "status": "success", 
-                "message": "未成功下载任何论文。",
+                "message": "未成功下载任何论文，但报告已生成。",
                 "successful": num_successful,
                 "total": total_papers
             })
             
-        # 将临时目录打包成 zip 文件
+        # 4. 将临时目录打包成 zip 文件
         zip_filename_base = f"scholar_search_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         zip_temp_dir = tempfile.gettempdir()
         zip_path_base = os.path.join(zip_temp_dir, zip_filename_base)
         zip_path = shutil.make_archive(zip_path_base, 'zip', download_temp_dir)
 
-        # 生成一个唯一ID来关联这个zip文件
         file_id = str(uuid.uuid4())
         TEMP_DOWNLOAD_FILES[file_id] = {
             "path": zip_path,
             "filename": os.path.basename(zip_path)
         }
         
-        # 返回 JSON 响应，包含统计数据和获取文件的 file_id
         return jsonify({
             "status": "success",
             "successful": num_successful,
@@ -260,7 +349,6 @@ def handle_download():
         traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
     finally:
-        # 清理存放 PDF 的临时目录
         shutil.rmtree(download_temp_dir, ignore_errors=True)
 
 
@@ -298,78 +386,19 @@ def download_file(file_id):
 
 @app.route('/api/export', methods=['POST'])
 def export_to_excel():
-    """将分组的搜索结果导出为 Excel 文件"""
+    """将分组的搜索结果导出为 Excel 文件（不含下载状态）"""
     try:
         request_data = request.json
-        lang = request_data.get('lang', 'zh') # 默认为中文
+        lang = request_data.get('lang', 'zh')
         grouped_data = request_data.get('data', {})
         
-        headers = {
-            'zh': {
-                'venue_name': '会议/期刊',
-                'year': '年份',
-                'title': '文章标题',
-                'matched_keywords': '匹配的摘要词',
-                'author': '作者',
-                'citations': '引用数',
-                'url': 'URL'
-            },
-            'en': {
-                'venue_name': 'Conference/Journal',
-                'year': 'Year',
-                'title': 'Title',
-                'matched_keywords': 'Matched Abstract Keywords',
-                'author': 'Authors',
-                'citations': 'Citations',
-                'url': 'URL'
-            }
-        }
-        current_headers = headers.get(lang, headers['zh'])
-
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            for category, papers in grouped_data.items():
-                if not papers:
-                    continue
-                
-                df = pd.DataFrame(papers)
-                df_for_excel = pd.DataFrame({
-                    current_headers['venue_name']: df['venue_name'],
-                    current_headers['year']: df['year'],
-                    current_headers['title']: df['title'],
-                    current_headers['matched_keywords']: df['matched_keywords'],
-                    current_headers['author']: df['author'],
-                    current_headers['citations']: df['citations'],
-                    current_headers['url']: df['url']
-                })
-
-                # 创建安全的工作表名称
-                safe_category = "".join(c for c in category if c.isalnum() or c in (' ', '_')).rstrip()
-                sheet_name = safe_category[:31] # Excel工作表名长度限制为31个字符
-
-                df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False)
-
-                # --- 新增：为每个工作表自动调整列宽 ---
-                worksheet = writer.sheets[sheet_name]
-                for idx, col in enumerate(df_for_excel, 1):
-                    series = df_for_excel[col]
-                    try:
-                        max_len = max(
-                            series.astype(str).map(len).max(),
-                            len(str(series.name))
-                        ) + 4
-                    except (ValueError, TypeError):
-                        max_len = len(str(series.name)) + 4
-                    
-                    worksheet.column_dimensions[get_column_letter(idx)].width = max_len
-        
-        output.seek(0)
+        excel_io = _create_excel_report(grouped_data, lang, downloaded_files=None, is_arxiv=False)
         
         date_str = datetime.now().strftime('%Y%m%d')
         filename = f"scholar_report_{date_str}.xlsx"
         
         return send_file(
-            output,
+            excel_io,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
             download_name=filename
@@ -383,75 +412,19 @@ def export_to_excel():
 
 @app.route('/api/arxiv_export', methods=['POST'])
 def export_arxiv_to_excel():
-    """将分组的 arXiv 搜索结果导出为 Excel 文件"""
+    """将分组的 arXiv 搜索结果导出为 Excel 文件（不含下载状态）"""
     try:
         request_data = request.json
-        lang = request_data.get('lang', 'zh') # 默认为中文
+        lang = request_data.get('lang', 'zh')
         grouped_data = request_data.get('data', {})
 
-        headers = {
-            'zh': {
-                'updated': '更新日期',
-                'published': '发表日期',
-                'title': '文章标题',
-                'matched_keywords': '匹配的关键词',
-                'author': '作者',
-                'url': 'URL'
-            },
-            'en': {
-                'updated': 'Updated',
-                'published': 'Published',
-                'title': 'Title',
-                'matched_keywords': 'Matched Keywords',
-                'author': 'Authors',
-                'url': 'URL'
-            }
-        }
-        current_headers = headers.get(lang, headers['zh'])
-        
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            for direction_name, papers in grouped_data.items():
-                if not papers:
-                    continue
-                
-                df = pd.DataFrame(papers)
-                df_for_excel = pd.DataFrame({
-                    current_headers['updated']: df['updated'],
-                    current_headers['published']: df['published'],
-                    current_headers['title']: df['title'],
-                    current_headers['matched_keywords']: df['matched_keywords'],
-                    current_headers['author']: df['author'],
-                    current_headers['url']: df['url']
-                })
-
-                # 创建安全的工作表名称
-                safe_name = "".join(c for c in direction_name if c.isalnum() or c in (' ', '_')).rstrip()
-                sheet_name = safe_name[:31] # Excel工作表名长度限制为31个字符
-
-                df_for_excel.to_excel(writer, sheet_name=sheet_name, index=False)
-
-                # --- 新增：为每个工作表自动调整列宽 ---
-                worksheet = writer.sheets[sheet_name]
-                for idx, col in enumerate(df_for_excel, 1):
-                    series = df_for_excel[col]
-                    try:
-                        max_len = max(
-                            series.astype(str).map(len).max(),
-                            len(str(series.name))
-                        ) + 4
-                    except (ValueError, TypeError):
-                        max_len = len(str(series.name)) + 4
-                    
-                    worksheet.column_dimensions[get_column_letter(idx)].width = max_len
-        
-        output.seek(0)
+        excel_io = _create_excel_report(grouped_data, lang, downloaded_files=None, is_arxiv=True)
         
         date_str = datetime.now().strftime('%Y%m%d')
         filename = f"arxiv_report_{date_str}.xlsx"
         
         return send_file(
-            output,
+            excel_io,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
             download_name=filename
