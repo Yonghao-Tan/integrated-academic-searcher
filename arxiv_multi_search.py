@@ -3,6 +3,7 @@ import argparse
 import pandas as pd
 import arxiv
 import json
+import re
 from datetime import datetime, timedelta, timezone
 from openpyxl.utils import get_column_letter
 
@@ -111,8 +112,25 @@ def search_arxiv(query, direction_name, start_date, abstract_keyword_groups=None
             # 组间OR: 只要有一个内层分组(AND group)匹配成功，就通过
             # 这里我们不能用 any()，因为要记录所有匹配上的词
             for group in abstract_keyword_groups:
-                # 组内AND: 一个内层分组里的所有关键词都必须在摘要中出现
-                if all(kw.lower() in summary_lower for kw in group):
+                all_kws_in_group_matched = True
+                for kw in group:
+                    is_whole_word = kw.endswith('*')
+                    clean_kw = kw.rstrip('*').lower()
+                    
+                    if not clean_kw: continue
+
+                    if is_whole_word:
+                        # 全词匹配
+                        if not re.search(r'\b' + re.escape(clean_kw) + r'\b', summary_lower):
+                            all_kws_in_group_matched = False
+                            break
+                    else:
+                        # 子字符串匹配
+                        if clean_kw not in summary_lower:
+                            all_kws_in_group_matched = False
+                            break
+                
+                if all_kws_in_group_matched:
                     matched_keywords_in_abstract.extend(group)
             
             if not matched_keywords_in_abstract:

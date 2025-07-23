@@ -6,6 +6,7 @@ from datetime import datetime
 from semanticscholar.SemanticScholar import SemanticScholar
 from openpyxl.utils import get_column_letter
 import requests # 确保导入 requests 库
+import re
 
 def find_top_venue(venue_str, venue_definitions):
     """
@@ -217,8 +218,28 @@ def search_semantic_scholar(topic, settings, venue_definitions, bulk_search):
             pass
         elif abstract_keyword_groups:
             # 否则，正常进行摘要筛选
+            abstract_lower = (paper.abstract or "").lower()
+            
             for group in abstract_keyword_groups:
-                if all(kw.lower() in (paper.abstract or "").lower() for kw in group):
+                all_kws_in_group_matched = True
+                for kw in group:
+                    is_whole_word = kw.endswith('*')
+                    clean_kw = kw.rstrip('*').lower()
+                    
+                    if not clean_kw: continue
+
+                    if is_whole_word:
+                        # 全词匹配
+                        if not re.search(r'\b' + re.escape(clean_kw) + r'\b', abstract_lower):
+                            all_kws_in_group_matched = False
+                            break
+                    else:
+                        # 子字符串匹配
+                        if clean_kw not in abstract_lower:
+                            all_kws_in_group_matched = False
+                            break
+                
+                if all_kws_in_group_matched:
                     matched_keywords_in_abstract.extend(group)
             
             if not matched_keywords_in_abstract:
