@@ -4,6 +4,8 @@
 
 This is a powerful academic paper search tool that integrates search capabilities for **Semantic Scholar** and **arXiv**. It features a bilingual interface, advanced filtering, multi-sheet Excel export, and one-click batch downloading of papers from arXiv.
 
+🚀 Note: The program automatically pulls the latest code from GitHub on startup to ensure you're using the latest version. If you want to disable this feature, please comment out the `auto_git_pull()` call in three `.py` files.
+
 ## ✨ Key Features
 
 - **Bilingual Interface**: Seamlessly switch between **English** and **Chinese** with a single click.
@@ -16,7 +18,7 @@ This is a powerful academic paper search tool that integrates search capabilitie
     - Downloads are organized into subfolders named after their search category (e.g., `CV`, `NLP`).
     - All downloaded papers are bundled into a single `.zip` file for convenient one-click download from the browser.
 - **Advanced Filtering & Search**:
-    - Filter by title keywords, abstract keywords, minimum year, and specific venues.
+    - Filter by title keywords, abstract keywords (supporting whole-word match), minimum year, and specific venues.
     - Exclude papers based on words in their titles.
     - Define multiple, independent search "directions" in arXiv for complex queries.
 - **Organized Results & Export**:

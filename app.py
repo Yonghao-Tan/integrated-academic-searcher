@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 
 # 导入现有的搜索脚本逻辑
 from semantic_scholar_search import run_search as semantic_scholar_run_search, _generate_safe_filename
-from arxiv_multi_search import run_search as arxiv_run_search
+from arxiv_multi_search import run_search as arxiv_run_search, auto_git_pull
 
 app = Flask(__name__)
 
@@ -437,4 +437,5 @@ def export_arxiv_to_excel():
 
 
 if __name__ == '__main__':
+    auto_git_pull()
     app.run(debug=True, port=5001) 

@@ -8,6 +8,38 @@ from openpyxl.utils import get_column_letter
 import requests # 确保导入 requests 库
 import re
 
+import subprocess
+import sys
+import os
+
+def auto_git_pull():
+    """自动执行 git pull 更新代码"""
+    try:
+        print("正在检查代码更新...")
+        # 确保在正确的目录执行 git 命令
+        repo_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # 执行 git pull
+        result = subprocess.run(['git', 'pull'], 
+                              capture_output=True, 
+                              text=True, 
+                              cwd=repo_dir)
+        
+        print("Git pull output:", result.stdout.strip())
+        
+        if result.returncode == 0:
+            if "Already up to date" in result.stdout:
+                print("✅ 代码已是最新的")
+            else:
+                print("✅ 代码更新成功")
+        else:
+            print("❌ Git pull 失败:", result.stderr.strip())
+            
+    except FileNotFoundError:
+        print("❌ 未找到 git 命令，请确保已安装 git")
+    except Exception as e:
+        print(f"❌ Git pull 出现错误: {e}")
+        
 def find_top_venue(venue_str, venue_definitions):
     """
     根据venue字符串和指定的类别，判断论文是否属于顶级出版物。
@@ -403,6 +435,7 @@ def download_papers(grouped_papers, base_download_dir):
 
 
 if __name__ == "__main__":
+    auto_git_pull()
     parser = argparse.ArgumentParser(description="从 Semantic Scholar 批量搜索论文并导出到 Excel。")
     parser.add_argument("config", type=str, help="要使用的JSON配置文件路径 (例如 'config_algorithm.json')。")
     parser.add_argument("--venues", type=str, default="configs/semantic_scholar_default.json", help="包含会议/期刊定义的JSON文件路径。")

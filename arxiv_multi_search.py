@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from openpyxl.utils import get_column_letter
 
 # 从 semantic_scholar_search 模块导入通用的下载函数
-from semantic_scholar_search import download_papers
+from semantic_scholar_search import download_papers, auto_git_pull
 
 # 用于筛选的顶级会议/期刊的映射关系
 # 格式为: (正式显示名称, [所有相关的小写搜索关键词])
@@ -192,6 +192,7 @@ def run_search(topic, settings):
 
 
 if __name__ == "__main__":
+    auto_git_pull()
     parser = argparse.ArgumentParser(description="从 arXiv 批量搜索指定时间窗口内的新论文并导出到 Excel。")
     parser.add_argument("--config", type=str, default="configs/arxiv_window.json", help="包含搜索主题和设置的JSON配置文件路径。")
     parser.add_argument("--days", type=int, help="覆盖配置文件中的搜索时间窗口（天数）。")
