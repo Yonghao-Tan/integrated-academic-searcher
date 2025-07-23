@@ -7,7 +7,7 @@
     "query_keywords_desc": "(每行一组, 组内用英文逗号隔开)",
     "query_keywords_placeholder": "例如：\\nLLM, Quantization\\nLarge Language Model, Quantization",
     "abstract_keywords_label": "摘要必须包含的关键词",
-    "abstract_keywords_desc": "(每行一组, 组内用英文逗号隔开)",
+    "abstract_keywords_desc": "(每行一组, 组内用英文逗号隔开; 如有些会议没有摘要会直接通过筛选)",
     "abstract_keywords_placeholder": "例如：\\nLLM, Quantization\\nIn-Context Learning",
     "min_year_label": "最低年份",
     "min_year_placeholder": "例如: 2023",

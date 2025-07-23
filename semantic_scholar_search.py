@@ -212,7 +212,7 @@ def search_semantic_scholar(topic, settings, venue_definitions, bulk_search):
 
         # 摘要关键词筛选 (带有例外和匹配记录逻辑)
         matched_keywords_in_abstract = []
-        if found_venue in skip_abstract_venues:
+        if found_venue in skip_abstract_venues or paper.abstract is None:
             # 如果命中了顶级会议，则跳过摘要筛选
             pass
         elif abstract_keyword_groups:

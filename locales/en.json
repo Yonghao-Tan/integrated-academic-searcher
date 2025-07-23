@@ -7,7 +7,7 @@
     "query_keywords_desc": "(One group per line, comma-separated)",
     "query_keywords_placeholder": "e.g.,\\nLLM, Quantization\\nLarge Language Model, Quantization",
     "abstract_keywords_label": "Abstract Must Contain Keywords",
-    "abstract_keywords_desc": "(One group per line, comma-separated)",
+    "abstract_keywords_desc": "(One group per line, comma-separated; Meetings without abstracts may directly pass)",
     "abstract_keywords_placeholder": "e.g.,\\nLLM, Quantization\\nIn-Context Learning",
     "min_year_label": "Minimum Year",
     "min_year_placeholder": "e.g., 2023",
