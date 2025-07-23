@@ -37,6 +37,7 @@
     {
       "direction": "LLM Compression Others",
       "query_keywords": [
+        ["Speculative Decoding"],
         ["LLM", "Speculative Decoding"],
         ["Large Language Model", "Speculative Decoding"],
         ["LLM", "Compression"],
@@ -49,6 +50,7 @@
       "abstract_keywords": [
         ["Speculative Decoding"],
         ["Speculative"],
+        ["Speculative Sampl"],
         ["Low rank"],
         ["Low-rank"],
         ["LoRA"],
@@ -64,6 +66,7 @@
         ["3DGS"],
         ["3D Gaussian Splatting"],
         ["Neural Rendering"],
+        ["Neural scene representation"],
         ["Volume Rendering"]
       ],
       "abstract_keywords": [
@@ -72,6 +75,7 @@
         ["3DGS"],
         ["3D Gaussian Splatting"],
         ["Neural Rendering"],
+        ["Neural scene represent"],
         ["Volume Rendering"]
       ],
       "subjects": ["cs.AI", "cs.CL", "cs.LG", "cs.CV"]
@@ -88,6 +92,15 @@
         ["Vision", "Hardware Architecture"],
         ["Vision", "Hardware"], 
         ["Vision", "Edge"], 
+        ["mamba", "Hardware Architecture"], 
+        ["mamba", "Hardware"], 
+        ["mamba", "Edge"], 
+        ["state space model", "Hardware Architecture"], 
+        ["state space model", "Hardware"], 
+        ["state space model", "Edge"], 
+        ["ssm", "Hardware Architecture"], 
+        ["ssm", "Hardware"], 
+        ["ssm", "Edge"], 
         ["NeRF", "Hardware Architecture"], 
         ["NeRF", "Hardware"], 
         ["NeRF", "Edge"], 
